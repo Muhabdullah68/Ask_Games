@@ -6,6 +6,7 @@ import '../widgets/game_widgets.dart';
 import '../games/tictactoe/tic_tac_toe_screen.dart';
 import '../games/dotsboxes/dots_boxes_screen.dart';
 import '../games/snake/snake_screen.dart';
+import '../games/bubble/bubble_shooter_screen.dart';
 import 'game_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -446,6 +447,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     builder: (_) => const SnakeScreen(),
                   ),
                 );
+              } else if (game.id == 'bubble') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const BubbleShooterScreen(),
+                  ),
+                );
               } else {
                 Navigator.push(
                   context,
@@ -493,6 +501,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const SnakeScreen(),
+                  ),
+                );
+              } else if (game.id == 'bubble') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const BubbleShooterScreen(),
                   ),
                 );
               } else {
