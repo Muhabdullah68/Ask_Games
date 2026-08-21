@@ -5,6 +5,7 @@ import '../games/tictactoe/tic_tac_toe_screen.dart';
 import '../games/dotsboxes/dots_boxes_screen.dart';
 import '../games/snake/snake_screen.dart';
 import '../games/bubble/bubble_shooter_screen.dart';
+import '../games/fruitninja/fruit_ninja_screen.dart';
 import 'game_details_screen.dart';
 
 class GamesScreen extends StatelessWidget {
@@ -155,6 +156,11 @@ class GamesScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const BubbleShooterScreen()),
+          );
+        } else if (game.id == 'fruit') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const FruitNinjaScreen()),
           );
         } else {
           Navigator.push(
