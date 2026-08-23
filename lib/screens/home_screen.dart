@@ -8,6 +8,7 @@ import '../games/dotsboxes/dots_boxes_screen.dart';
 import '../games/snake/snake_screen.dart';
 import '../games/bubble/bubble_shooter_screen.dart';
 import '../games/fruitninja/fruit_ninja_screen.dart';
+import '../games/racer/racer_screen.dart';
 import 'game_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -103,9 +104,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Welcome back,',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textMuted,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
               ),
               const SizedBox(height: 2),
               Row(
@@ -187,17 +188,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   bgColor: AppColors.gold,
                 ),
                 SizedBox(width: 8),
-                CurrencyChip(
-                  icon: '💎',
-                  amount: 250,
-                  bgColor: AppColors.gem,
-                ),
+                CurrencyChip(icon: '💎', amount: 250, bgColor: AppColors.gem),
                 SizedBox(width: 8),
-                CurrencyChip(
-                  icon: '🔷',
-                  amount: 35,
-                  bgColor: AppColors.token,
-                ),
+                CurrencyChip(icon: '🔷', amount: 35, bgColor: AppColors.token),
                 SizedBox(width: 12),
               ],
             ),
@@ -209,11 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
               gradient: AppColors.primaryGradient,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.add_rounded,
-              size: 20,
-              color: Colors.white,
-            ),
+            child: const Icon(Icons.add_rounded, size: 20, color: Colors.white),
           ),
         ],
       ),
@@ -266,8 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 6,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(3),
-                gradient:
-                    _bannerIndex == i ? AppColors.primaryGradient : null,
+                gradient: _bannerIndex == i ? AppColors.primaryGradient : null,
                 color: _bannerIndex == i ? null : AppColors.cardBorder,
               ),
             ),
@@ -347,9 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             alignment: Alignment.centerLeft,
                             child: Text(
                               title,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .displayMedium
+                              style: Theme.of(context).textTheme.displayMedium
                                   ?.copyWith(
                                     height: 1.05,
                                     letterSpacing: -0.5,
@@ -363,12 +349,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               subtitle,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
+                              style: Theme.of(context).textTheme.bodyLarge
                                   ?.copyWith(
-                                    color: AppColors.textSecondary
-                                        .withValues(alpha: 0.9),
+                                    color: AppColors.textSecondary.withValues(
+                                      alpha: 0.9,
+                                    ),
                                     height: 1.3,
                                     fontSize: 12,
                                   ),
@@ -430,23 +415,17 @@ class _HomeScreenState extends State<HomeScreen> {
               if (game.id == 'tictactoe') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const TicTacToeScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const TicTacToeScreen()),
                 );
               } else if (game.id == 'dotsboxes') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const DotsBoxesScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const DotsBoxesScreen()),
                 );
               } else if (game.id == 'snake') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const SnakeScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const SnakeScreen()),
                 );
               } else if (game.id == 'bubble') {
                 Navigator.push(
@@ -458,9 +437,12 @@ class _HomeScreenState extends State<HomeScreen> {
               } else if (game.id == 'fruit') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const FruitNinjaScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const FruitNinjaScreen()),
+                );
+              } else if (game.id == 'speed') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SpeedRacerScreen()),
                 );
               } else {
                 Navigator.push(
@@ -493,23 +475,17 @@ class _HomeScreenState extends State<HomeScreen> {
               if (game.id == 'tictactoe') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const TicTacToeScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const TicTacToeScreen()),
                 );
               } else if (game.id == 'dotsboxes') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const DotsBoxesScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const DotsBoxesScreen()),
                 );
               } else if (game.id == 'snake') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const SnakeScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const SnakeScreen()),
                 );
               } else if (game.id == 'bubble') {
                 Navigator.push(
@@ -521,9 +497,12 @@ class _HomeScreenState extends State<HomeScreen> {
               } else if (game.id == 'fruit') {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const FruitNinjaScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const FruitNinjaScreen()),
+                );
+              } else if (game.id == 'speed') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SpeedRacerScreen()),
                 );
               } else {
                 Navigator.push(
@@ -588,11 +567,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           'Play daily and claim exciting rewards!',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.textSecondary
-                                        .withValues(alpha: 0.9),
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppColors.textSecondary.withValues(
+                                  alpha: 0.9,
+                                ),
+                              ),
                         ),
                       ),
                       const SizedBox(height: 14),

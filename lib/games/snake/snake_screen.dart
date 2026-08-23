@@ -18,11 +18,15 @@ class _SnakeScreenState extends State<SnakeScreen>
   Timer? _gameTimer;
   late AnimationController _winOverlayController;
   late AnimationController _pulseController;
+  late final FocusNode _focusNode;
+  Offset? _swipeStart;
+  bool _swipeHandled = false;
 
   @override
   void initState() {
     super.initState();
     _game = SnakeGame(gridSize: 18, difficulty: SnakeDifficulty.medium);
+    _focusNode = FocusNode();
     _winOverlayController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -38,6 +42,7 @@ class _SnakeScreenState extends State<SnakeScreen>
     _gameTimer?.cancel();
     _winOverlayController.dispose();
     _pulseController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -58,20 +63,27 @@ class _SnakeScreenState extends State<SnakeScreen>
     setState(() {});
   }
 
+  int _activeSpeedMs = 120;
+
   void _startTimer() {
     _gameTimer?.cancel();
-    _gameTimer = Timer.periodic(
-      Duration(milliseconds: _game.speedMs),
-      (_) {
-        if (_game.state != SnakeGameState.playing) return;
-        final changed = _game.step();
-        if (_game.state == SnakeGameState.gameOver) {
-          _gameTimer?.cancel();
-          _winOverlayController.forward();
-        }
-        if (changed) setState(() {});
-      },
-    );
+    _activeSpeedMs = _game.speedMs;
+    _gameTimer = Timer.periodic(Duration(milliseconds: _activeSpeedMs), (_) {
+      if (_game.state != SnakeGameState.playing) return;
+      final changed = _game.step();
+      if (_game.state == SnakeGameState.gameOver) {
+        _gameTimer?.cancel();
+        _winOverlayController.forward();
+        setState(() {});
+        return;
+      }
+      if (_game.speedMs != _activeSpeedMs) {
+        setState(() {});
+        _startTimer();
+        return;
+      }
+      if (changed) setState(() {});
+    });
   }
 
   void _resetGame() {
@@ -99,13 +111,36 @@ class _SnakeScreenState extends State<SnakeScreen>
     }
   }
 
+  void _onSwipeStart(DragStartDetails d) {
+    _swipeStart = d.localPosition;
+    _swipeHandled = false;
+  }
+
+  void _onSwipeUpdate(DragUpdateDetails d) {
+    if (_swipeStart == null || _swipeHandled) return;
+    final delta = d.localPosition - _swipeStart!;
+    if (delta.distance < 24) return;
+    _swipeHandled = true;
+    if (delta.dx.abs() > delta.dy.abs()) {
+      _setDir(delta.dx > 0 ? SnakeDirection.right : SnakeDirection.left);
+    } else {
+      _setDir(delta.dy > 0 ? SnakeDirection.down : SnakeDirection.up);
+    }
+  }
+
+  void _onSwipeEnd(DragEndDetails d) {
+    _swipeStart = null;
+    _swipeHandled = false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: RawKeyboardListener(
-        focusNode: FocusNode()..requestFocus(),
-        onKey: (event) {
-          if (event is RawKeyDownEvent) {
+      body: KeyboardListener(
+        focusNode: _focusNode,
+        autofocus: true,
+        onKeyEvent: (event) {
+          if (event is KeyDownEvent) {
             if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
                 event.logicalKey == LogicalKeyboardKey.keyW) {
               _setDir(SnakeDirection.up);
@@ -140,7 +175,7 @@ class _SnakeScreenState extends State<SnakeScreen>
                     colors: [
                       Color(0xFF052E16),
                       Color(0xFF064E3B),
-                      AppColors.background
+                      AppColors.background,
                     ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
@@ -207,9 +242,7 @@ class _SnakeScreenState extends State<SnakeScreen>
                           const SizedBox(height: 22),
                           Row(
                             children: [
-                              Expanded(
-                                child: _buildMainButton(),
-                              ),
+                              Expanded(child: _buildMainButton()),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: BorderedButton(
@@ -265,9 +298,9 @@ class _SnakeScreenState extends State<SnakeScreen>
               const SizedBox(height: 4),
               Text(
                 '${_game.snake.length}',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(color: AppColors.textPrimary),
               ),
             ],
           ),
@@ -346,25 +379,25 @@ class _SnakeScreenState extends State<SnakeScreen>
   Widget _buildStatusIndicator() {
     final (label, icon, color) = switch (_game.state) {
       SnakeGameState.idle => (
-          'Tap Play or any arrow to start',
-          Icons.play_circle_rounded,
-          AppColors.primaryLight
-        ),
+        'Tap Play or swipe any direction to start',
+        Icons.play_circle_rounded,
+        AppColors.primaryLight,
+      ),
       SnakeGameState.playing => (
-          'Game running — eat the apples! 🍎',
-          Icons.play_arrow_rounded,
-          AppColors.green
-        ),
+        'Eat apples! 🍎 Gold = +50 · Avoid bombs 💣',
+        Icons.play_arrow_rounded,
+        AppColors.green,
+      ),
       SnakeGameState.paused => (
-          'Paused — tap Resume to continue',
-          Icons.pause_circle_rounded,
-          AppColors.gold
-        ),
+        'Paused — tap Resume to continue',
+        Icons.pause_circle_rounded,
+        AppColors.gold,
+      ),
       SnakeGameState.gameOver => (
-          'Game Over!',
-          Icons.timer_off_rounded,
-          AppColors.red
-        ),
+        'Game Over!',
+        Icons.timer_off_rounded,
+        AppColors.red,
+      ),
     };
 
     return Container(
@@ -403,10 +436,10 @@ class _SnakeScreenState extends State<SnakeScreen>
             Text(
               label,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: _game.state == SnakeGameState.playing
-                        ? AppColors.green
-                        : AppColors.textPrimary,
-                  ),
+                color: _game.state == SnakeGameState.playing
+                    ? AppColors.green
+                    : AppColors.textPrimary,
+              ),
             ),
           ],
         ),
@@ -453,12 +486,19 @@ class _SnakeScreenState extends State<SnakeScreen>
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                children: [
-                  ..._buildGrid(n, cellSize),
-                  ..._buildSnake(n, cellSize),
-                  _buildFood(cellSize),
-                ],
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanStart: _onSwipeStart,
+                onPanUpdate: _onSwipeUpdate,
+                onPanEnd: _onSwipeEnd,
+                child: Stack(
+                  children: [
+                    ..._buildGrid(n, cellSize),
+                    ..._buildObstacles(cellSize),
+                    ..._buildFoods(cellSize),
+                    ..._buildSnake(n, cellSize),
+                  ],
+                ),
               ),
             ),
           );
@@ -502,7 +542,12 @@ class _SnakeScreenState extends State<SnakeScreen>
       final r = (0x4A + (0x05 - 0x4A) * (1.0 - rT)).round();
       final g = (0xDE + (0x96 - 0xDE) * (1.0 - rT)).round();
       final b = (0x80 + (0x69 - 0x80) * (1.0 - rT)).round();
-      final bodyColor = Color.fromRGBO(r.clamp(0, 255), g.clamp(0, 255), b.clamp(0, 255), 1);
+      final bodyColor = Color.fromRGBO(
+        r.clamp(0, 255),
+        g.clamp(0, 255),
+        b.clamp(0, 255),
+        1,
+      );
 
       widgets.add(
         Positioned(
@@ -532,11 +577,7 @@ class _SnakeScreenState extends State<SnakeScreen>
                 ),
               ],
             ),
-            child: isHead
-                ? Center(
-                    child: _buildHeadEyes(cellSize),
-                  )
-                : null,
+            child: isHead ? Center(child: _buildHeadEyes(cellSize)) : null,
           ),
         ),
       );
@@ -628,76 +669,247 @@ class _SnakeScreenState extends State<SnakeScreen>
     );
   }
 
-  Widget _buildFood(double cellSize) {
-    final p = _game.food;
-    return AnimatedBuilder(
-      animation: _pulseController,
-      builder: (_, child) {
-        final scale = 1.0 + 0.1 * _pulseController.value;
-        return Transform.scale(
-          scale: scale,
-          child: Positioned(
-            left: p.x * cellSize + cellSize * 0.1,
-            top: p.y * cellSize + cellSize * 0.1,
-            width: cellSize * 0.8,
-            height: cellSize * 0.8,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const RadialGradient(
-                  colors: [Color(0xFFFF6B6B), Color(0xFFDC2626)],
-                  center: Alignment.topLeft,
-                  radius: 1.2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.red.withValues(alpha: 0.7),
-                    blurRadius: 12,
-                    spreadRadius: 1,
-                  ),
-                ],
+  List<Widget> _buildObstacles(double cellSize) {
+    return _game.obstacles.map((p) {
+      return Positioned(
+        left: p.x * cellSize + cellSize * 0.04,
+        top: p.y * cellSize + cellSize * 0.04,
+        width: cellSize * 0.92,
+        height: cellSize * 0.92,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF6B7280), Color(0xFF374151)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(cellSize * 0.18),
+            border: Border.all(color: const Color(0xFF1F2937), width: 0.8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.4),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: cellSize * 0.38,
-                    top: cellSize * 0.02,
-                    child: Transform.rotate(
-                      angle: 0.4,
-                      child: Container(
-                        width: cellSize * 0.1,
-                        height: cellSize * 0.2,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF22C55E),
-                          borderRadius: BorderRadius.circular(cellSize * 0.05),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: cellSize * 0.2,
-                    top: cellSize * 0.2,
-                    child: Container(
-                      width: cellSize * 0.14,
-                      height: cellSize * 0.08,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(cellSize * 0.04),
-                      ),
-                    ),
-                  ),
-                ],
+            ],
+          ),
+          child: Center(
+            child: Container(
+              width: cellSize * 0.3,
+              height: cellSize * 0.18,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(cellSize * 0.09),
               ),
             ),
           ),
-        );
+        ),
+      );
+    }).toList();
+  }
+
+  List<Widget> _buildFoods(double cellSize) {
+    return _game.foods.map((f) {
+      switch (f.type) {
+        case FoodType.normal:
+          return _buildApple(f, cellSize);
+        case FoodType.golden:
+          return _buildGolden(f, cellSize);
+        case FoodType.bomb:
+          return _buildBomb(f, cellSize);
+      }
+    }).toList();
+  }
+
+  Widget _foodPulse(Food f, Widget child, {double amount = 0.1}) {
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (_, wrapped) {
+        final expiring =
+            f.type != FoodType.normal && f.ticksLeft * _game.speedMs < 2000;
+        final scale =
+            (1.0 + amount * _pulseController.value) *
+            (expiring ? 0.75 + 0.25 * _pulseController.value : 1.0);
+        return Transform.scale(scale: scale, child: wrapped);
       },
+      child: child,
+    );
+  }
+
+  Widget _buildApple(Food f, double cellSize) {
+    final p = f.pos;
+    return Positioned(
+      left: p.x * cellSize + cellSize * 0.1,
+      top: p.y * cellSize + cellSize * 0.1,
+      width: cellSize * 0.8,
+      height: cellSize * 0.8,
+      child: _foodPulse(
+        f,
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const RadialGradient(
+              colors: [Color(0xFFFF6B6B), Color(0xFFDC2626)],
+              center: Alignment.topLeft,
+              radius: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.red.withValues(alpha: 0.7),
+                blurRadius: 12,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                left: cellSize * 0.38,
+                top: cellSize * 0.02,
+                child: Transform.rotate(
+                  angle: 0.4,
+                  child: Container(
+                    width: cellSize * 0.1,
+                    height: cellSize * 0.2,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF22C55E),
+                      borderRadius: BorderRadius.circular(cellSize * 0.05),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: cellSize * 0.2,
+                top: cellSize * 0.2,
+                child: Container(
+                  width: cellSize * 0.14,
+                  height: cellSize * 0.08,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(cellSize * 0.04),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGolden(Food f, double cellSize) {
+    final p = f.pos;
+    return Positioned(
+      left: p.x * cellSize + cellSize * 0.08,
+      top: p.y * cellSize + cellSize * 0.08,
+      width: cellSize * 0.84,
+      height: cellSize * 0.84,
+      child: _foodPulse(
+        f,
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const RadialGradient(
+              colors: [Color(0xFFFDE68A), Color(0xFFF59E0B)],
+              center: Alignment.topLeft,
+              radius: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.gold.withValues(alpha: 0.85),
+                blurRadius: 16,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                left: cellSize * 0.38,
+                top: cellSize * 0.02,
+                child: Transform.rotate(
+                  angle: 0.4,
+                  child: Container(
+                    width: cellSize * 0.1,
+                    height: cellSize * 0.2,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF059669),
+                      borderRadius: BorderRadius.circular(cellSize * 0.05),
+                    ),
+                  ),
+                ),
+              ),
+              Center(
+                child: Text('✨', style: TextStyle(fontSize: cellSize * 0.42)),
+              ),
+            ],
+          ),
+        ),
+        amount: 0.16,
+      ),
+    );
+  }
+
+  Widget _buildBomb(Food f, double cellSize) {
+    final p = f.pos;
+    return Positioned(
+      left: p.x * cellSize + cellSize * 0.08,
+      top: p.y * cellSize + cellSize * 0.08,
+      width: cellSize * 0.84,
+      height: cellSize * 0.84,
+      child: _foodPulse(
+        f,
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const RadialGradient(
+              colors: [Color(0xFF4B5563), Color(0xFF111827)],
+              center: Alignment(-0.3, -0.3),
+              radius: 0.9,
+            ),
+            border: Border.all(color: const Color(0xFF9CA3AF), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.red.withValues(alpha: 0.5),
+                blurRadius: 12,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: cellSize * 0.14,
+                top: cellSize * 0.06,
+                child: Container(
+                  width: cellSize * 0.18,
+                  height: cellSize * 0.18,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFFBBF24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFBBF24).withValues(alpha: 0.9),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Center(
+                child: Text('💥', style: TextStyle(fontSize: cellSize * 0.36)),
+              ),
+            ],
+          ),
+        ),
+        amount: 0.14,
+      ),
     );
   }
 
   Widget _buildControlPad() {
-    final size = 56.0;
-    final borderRadius = 16.0;
+    final size = 72.0;
+    final borderRadius = 20.0;
     return Column(
       children: [
         _buildDirButton(
@@ -706,7 +918,7 @@ class _SnakeScreenState extends State<SnakeScreen>
           icon: Icons.keyboard_arrow_up_rounded,
           onTap: () => _setDir(SnakeDirection.up),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -716,7 +928,7 @@ class _SnakeScreenState extends State<SnakeScreen>
               icon: Icons.keyboard_arrow_left_rounded,
               onTap: () => _setDir(SnakeDirection.left),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             GestureDetector(
               onTap: () {
                 if (_game.state == SnakeGameState.playing) {
@@ -744,11 +956,11 @@ class _SnakeScreenState extends State<SnakeScreen>
                       ? Icons.pause_rounded
                       : Icons.play_arrow_rounded,
                   color: Colors.white,
-                  size: 28,
+                  size: 38,
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             _buildDirButton(
               size: size,
               borderRadius: borderRadius,
@@ -791,11 +1003,7 @@ class _SnakeScreenState extends State<SnakeScreen>
             ),
           ],
         ),
-        child: Icon(
-          icon,
-          color: AppColors.primaryLight,
-          size: 30,
-        ),
+        child: Icon(icon, color: AppColors.primaryLight, size: 40),
       ),
     );
   }
@@ -803,10 +1011,22 @@ class _SnakeScreenState extends State<SnakeScreen>
   Widget _buildMainButton() {
     final state = _game.state;
     final (text, icon, onPressed) = switch (state) {
-      SnakeGameState.idle => ('Start Game', Icons.play_arrow_rounded, _startOrResume),
+      SnakeGameState.idle => (
+        'Start Game',
+        Icons.play_arrow_rounded,
+        _startOrResume,
+      ),
       SnakeGameState.playing => ('Pause', Icons.pause_rounded, _pause),
-      SnakeGameState.paused => ('Resume', Icons.play_arrow_rounded, _startOrResume),
-      SnakeGameState.gameOver => ('Play Again', Icons.refresh_rounded, _startOrResume),
+      SnakeGameState.paused => (
+        'Resume',
+        Icons.play_arrow_rounded,
+        _startOrResume,
+      ),
+      SnakeGameState.gameOver => (
+        'Play Again',
+        Icons.refresh_rounded,
+        _startOrResume,
+      ),
     };
     return GradientButton(
       text: text,
@@ -817,7 +1037,11 @@ class _SnakeScreenState extends State<SnakeScreen>
   }
 
   Widget _buildDifficultySelector() {
-    final options = [SnakeDifficulty.easy, SnakeDifficulty.medium, SnakeDifficulty.hard];
+    final options = [
+      SnakeDifficulty.easy,
+      SnakeDifficulty.medium,
+      SnakeDifficulty.hard,
+    ];
     final labels = ['Easy', 'Medium', 'Hard'];
     final colors = [AppColors.green, AppColors.gold, AppColors.red];
 
@@ -839,10 +1063,7 @@ class _SnakeScreenState extends State<SnakeScreen>
                 decoration: BoxDecoration(
                   gradient: selected
                       ? LinearGradient(
-                          colors: [
-                            colors[i].withValues(alpha: 0.7),
-                            colors[i]
-                          ],
+                          colors: [colors[i].withValues(alpha: 0.7), colors[i]],
                         )
                       : null,
                   borderRadius: BorderRadius.circular(10),
@@ -853,8 +1074,7 @@ class _SnakeScreenState extends State<SnakeScreen>
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color:
-                          selected ? Colors.white : AppColors.textSecondary,
+                      color: selected ? Colors.white : AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -871,8 +1091,7 @@ class _SnakeScreenState extends State<SnakeScreen>
       opacity: _winOverlayController,
       child: ScaleTransition(
         scale: Tween<double>(begin: 0.9, end: 1).animate(
-          CurvedAnimation(
-              parent: _winOverlayController, curve: Curves.easeOut),
+          CurvedAnimation(parent: _winOverlayController, curve: Curves.easeOut),
         ),
         child: IgnorePointer(
           ignoring: _game.state != SnakeGameState.gameOver,
@@ -917,7 +1136,8 @@ class _SnakeScreenState extends State<SnakeScreen>
                           _game.score >= _game.highScore && _game.score > 0
                               ? 'New High Score!'
                               : 'Game Over',
-                          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          style: Theme.of(context).textTheme.displaySmall
+                              ?.copyWith(
                                 color: AppColors.textPrimary,
                                 height: 1.2,
                               ),
@@ -933,13 +1153,15 @@ class _SnakeScreenState extends State<SnakeScreen>
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceLight,
                           borderRadius: BorderRadius.circular(14),
@@ -949,11 +1171,16 @@ class _SnakeScreenState extends State<SnakeScreen>
                           children: [
                             Column(
                               children: [
-                                const Text('🎯', style: TextStyle(fontSize: 20)),
+                                const Text(
+                                  '🎯',
+                                  style: TextStyle(fontSize: 20),
+                                ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '${_game.score}',
-                                  style: Theme.of(context).textTheme.headlineMedium
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
                                       ?.copyWith(color: Color(0xFF4ADE80)),
                                 ),
                                 Text(
@@ -969,11 +1196,16 @@ class _SnakeScreenState extends State<SnakeScreen>
                             ),
                             Column(
                               children: [
-                                const Text('🏆', style: TextStyle(fontSize: 20)),
+                                const Text(
+                                  '🏆',
+                                  style: TextStyle(fontSize: 20),
+                                ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '${_game.highScore}',
-                                  style: Theme.of(context).textTheme.headlineMedium
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
                                       ?.copyWith(color: AppColors.gold),
                                 ),
                                 Text(
@@ -989,11 +1221,16 @@ class _SnakeScreenState extends State<SnakeScreen>
                             ),
                             Column(
                               children: [
-                                const Text('🐍', style: TextStyle(fontSize: 20)),
+                                const Text(
+                                  '🐍',
+                                  style: TextStyle(fontSize: 20),
+                                ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '${_game.snake.length}',
-                                  style: Theme.of(context).textTheme.headlineMedium
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
                                       ?.copyWith(color: AppColors.primaryLight),
                                 ),
                                 Text(

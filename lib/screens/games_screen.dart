@@ -6,6 +6,7 @@ import '../games/dotsboxes/dots_boxes_screen.dart';
 import '../games/snake/snake_screen.dart';
 import '../games/bubble/bubble_shooter_screen.dart';
 import '../games/fruitninja/fruit_ninja_screen.dart';
+import '../games/racer/racer_screen.dart';
 import 'game_details_screen.dart';
 
 class GamesScreen extends StatelessWidget {
@@ -162,6 +163,11 @@ class GamesScreen extends StatelessWidget {
             context,
             MaterialPageRoute(builder: (_) => const FruitNinjaScreen()),
           );
+        } else if (game.id == 'speed') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SpeedRacerScreen()),
+          );
         } else {
           Navigator.push(
             context,
@@ -203,9 +209,9 @@ class GamesScreen extends StatelessWidget {
               game.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: AppColors.textPrimary),
             ),
             const SizedBox(height: 6),
             Row(
@@ -215,9 +221,9 @@ class GamesScreen extends StatelessWidget {
                 Text(
                   game.rating.toString(),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const Spacer(),
                 Icon(
