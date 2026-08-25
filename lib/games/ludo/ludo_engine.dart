@@ -85,14 +85,14 @@ class LudoGame {
   int diceValue = 0;
   int sixStreak = 0;
 
-  LudoGame({required int seatCount}) {
+  LudoGame({required int seatCount, List<bool>? seatIsAI}) {
     assert(seatCount >= 2 && seatCount <= 4);
     players = [];
     for (int i = 0; i < seatCount; i++) {
       players.add(
         LudoPlayer(
           color: seatOrder[i],
-          isAI: i != 0, // Red (first seat) is always the human.
+          isAI: seatIsAI != null ? seatIsAI[i] : i != 0,
         ),
       );
     }
@@ -199,6 +199,7 @@ class LudoGame {
   bool get isAITurn => currentPlayer.isAI;
   bool get isGameOver => phase == LudoPhase.gameOver;
   bool get forfeitsByTripleSix => diceValue == 6 && sixStreak >= 3;
+  bool get isLocalMultiplayer => players.where((p) => !p.isAI).length > 1;
 
   // ------------------------------------------------------------------- rules
 
