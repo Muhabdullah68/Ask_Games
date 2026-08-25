@@ -49,32 +49,37 @@ class SnakeGame {
   final Random _random = Random();
 
   static const int _maxQueueLength = 2;
-  static const int _minSpeedMs = 60;
+  static const int _minSpeedMs = 70;
+  static const int _startSegments = 3;
+  static const int _msPerSegment = 2;
 
   SnakeGame({
     this.gridSize = 20,
     this.difficulty = SnakeDifficulty.medium,
     this.highScore = 0,
-  })  : direction = SnakeDirection.right,
-        state = SnakeGameState.idle,
-        score = 0,
-        applesEaten = 0 {
+  }) : direction = SnakeDirection.right,
+       state = SnakeGameState.idle,
+       score = 0,
+       applesEaten = 0 {
     reset();
   }
 
   int get _baseSpeedMs {
     switch (difficulty) {
       case SnakeDifficulty.easy:
-        return 180;
+        return 200;
       case SnakeDifficulty.medium:
-        return 120;
+        return 150;
       case SnakeDifficulty.hard:
-        return 80;
+        return 110;
     }
   }
 
-  /// Dynamic speed: -8ms every 5 apples, floored at [_minSpeedMs].
-  int get speedMs => max(_minSpeedMs, _baseSpeedMs - (applesEaten ~/ 5) * 8);
+  /// Starts slow and creeps up 2ms per body segment beyond the initial 3.
+  int get speedMs => max(
+    _minSpeedMs,
+    _baseSpeedMs - (snake.length - _startSegments) * _msPerSegment,
+  );
 
   double get goldenChance {
     switch (difficulty) {
@@ -109,23 +114,17 @@ class SnakeGame {
     }
   }
 
-  int get goldenLifetimeTicks =>
-      (7000 / speedMs).round().clamp(10, 200);
+  int get goldenLifetimeTicks => (7000 / speedMs).round().clamp(10, 200);
 
   int get bombLifetimeTicks => (12000 / speedMs).round().clamp(12, 300);
 
-  bool get hasGolden =>
-      foods.any((f) => f.type == FoodType.golden);
+  bool get hasGolden => foods.any((f) => f.type == FoodType.golden);
   bool get hasBomb => foods.any((f) => f.type == FoodType.bomb);
   Food get normalFood => foods.firstWhere((f) => f.type == FoodType.normal);
 
   void reset() {
     final mid = gridSize ~/ 2;
-    snake = [
-      Point(mid - 1, mid),
-      Point(mid, mid),
-      Point(mid + 1, mid),
-    ];
+    snake = [Point(mid - 1, mid), Point(mid, mid), Point(mid + 1, mid)];
     direction = SnakeDirection.right;
     _inputQueue.clear();
     score = 0;
@@ -242,7 +241,8 @@ class SnakeGame {
       return false;
     }
 
-    final willGrow = hitFood != null &&
+    final willGrow =
+        hitFood != null &&
         (hitFood.type == FoodType.normal || hitFood.type == FoodType.golden);
 
     for (int i = 0; i < snake.length; i++) {
@@ -297,7 +297,12 @@ class SnakeGame {
       final spot = _randomFreeCell(minDistanceFromHead: 2);
       if (spot != null) {
         foods.add(
-            Food(pos: spot, type: FoodType.golden, ticksLeft: goldenLifetimeTicks));
+          Food(
+            pos: spot,
+            type: FoodType.golden,
+            ticksLeft: goldenLifetimeTicks,
+          ),
+        );
       }
     }
     if (!hasBomb &&
@@ -306,7 +311,8 @@ class SnakeGame {
       final spot = _randomFreeCell(minDistanceFromHead: 4);
       if (spot != null) {
         foods.add(
-            Food(pos: spot, type: FoodType.bomb, ticksLeft: bombLifetimeTicks));
+          Food(pos: spot, type: FoodType.bomb, ticksLeft: bombLifetimeTicks),
+        );
       }
     }
   }

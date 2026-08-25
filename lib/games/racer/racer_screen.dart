@@ -43,6 +43,9 @@ class _SpeedRacerScreenState extends State<SpeedRacerScreen>
     '🛻',
   ];
 
+  /// Most fonts draw car emojis side-view facing left; +90° turns them up.
+  static const double _carEmojiRotation = pi / 2;
+
   @override
   void initState() {
     super.initState();
@@ -507,7 +510,13 @@ class _SpeedRacerScreenState extends State<SpeedRacerScreen>
             ],
           ),
         ),
-        Text(emoji, style: TextStyle(fontSize: size * 0.94, height: 1.0)),
+        Transform.rotate(
+          angle: _carEmojiRotation,
+          child: Text(
+            emoji,
+            style: TextStyle(fontSize: size * 0.94, height: 1.0),
+          ),
+        ),
         ?extra,
       ],
     );

@@ -41,10 +41,10 @@ class DotsBoxesGame {
     this.difficulty = DotsDifficulty.medium,
     this.aiPlayer = DotsPlayer.player2,
     this.humanPlayer = DotsPlayer.player1,
-  })  : currentTurn = DotsPlayer.player1,
-        player1Score = 0,
-        player2Score = 0,
-        _gameOver = false {
+  }) : currentTurn = DotsPlayer.player1,
+       player1Score = 0,
+       player2Score = 0,
+       _gameOver = false {
     _initBoard();
   }
 
@@ -190,12 +190,12 @@ class DotsBoxesGame {
         if (Random().nextBool()) {
           move = _findCaptureMove();
         }
-        if (move == null) move = _findSafeMove();
-        if (move == null) move = _findRandomMove();
+        move ??= _findSafeMove();
+        move ??= _findRandomMove();
         break;
       case DotsDifficulty.hard:
         move = _findBestMove();
-        if (move == null) move = _findRandomMove();
+        move ??= _findRandomMove();
         break;
     }
 
@@ -262,16 +262,14 @@ class DotsBoxesGame {
     final safeMoves = <List<int>>[];
     for (int r = 0; r <= gridSize; r++) {
       for (int c = 0; c < gridSize; c++) {
-        if (!horizontalLines[r][c].drawn &&
-            _isSafeMove(0, r, c)) {
+        if (!horizontalLines[r][c].drawn && _isSafeMove(0, r, c)) {
           safeMoves.add([0, r, c]);
         }
       }
     }
     for (int r = 0; r < gridSize; r++) {
       for (int c = 0; c <= gridSize; c++) {
-        if (!verticalLines[r][c].drawn &&
-            _isSafeMove(1, r, c)) {
+        if (!verticalLines[r][c].drawn && _isSafeMove(1, r, c)) {
           safeMoves.add([1, r, c]);
         }
       }
@@ -281,8 +279,12 @@ class DotsBoxesGame {
   }
 
   bool _isSafeMove(int type, int row, int col) {
-    final savedH = horizontalLines.map((e) => e.map((l) => Line(drawn: l.drawn)).toList()).toList();
-    final savedV = verticalLines.map((e) => e.map((l) => Line(drawn: l.drawn)).toList()).toList();
+    final savedH = horizontalLines
+        .map((e) => e.map((l) => Line(drawn: l.drawn)).toList())
+        .toList();
+    final savedV = verticalLines
+        .map((e) => e.map((l) => Line(drawn: l.drawn)).toList())
+        .toList();
 
     if (type == 0) {
       horizontalLines[row][col].drawn = true;
@@ -341,9 +343,15 @@ class DotsBoxesGame {
   }
 
   int _countGivenUpBoxes(int type, int row, int col) {
-    final savedH = horizontalLines.map((e) => e.map((l) => Line(drawn: l.drawn)).toList()).toList();
-    final savedV = verticalLines.map((e) => e.map((l) => Line(drawn: l.drawn)).toList()).toList();
-    final savedBoxes = boxes.map((e) => e.map((b) => Box(owner: b.owner)).toList()).toList();
+    final savedH = horizontalLines
+        .map((e) => e.map((l) => Line(drawn: l.drawn)).toList())
+        .toList();
+    final savedV = verticalLines
+        .map((e) => e.map((l) => Line(drawn: l.drawn)).toList())
+        .toList();
+    final savedBoxes = boxes
+        .map((e) => e.map((b) => Box(owner: b.owner)).toList())
+        .toList();
 
     if (type == 0) {
       horizontalLines[row][col].drawn = true;

@@ -29,7 +29,8 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
       duration: const Duration(milliseconds: 400),
     );
     _lineAnimations = List.generate(
-      (_game.gridSize + 1) * _game.gridSize + _game.gridSize * (_game.gridSize + 1),
+      (_game.gridSize + 1) * _game.gridSize +
+          _game.gridSize * (_game.gridSize + 1),
       (_) => AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 200),
@@ -231,7 +232,11 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFF1A1A2E), Color(0xFF0F172A), AppColors.background],
+                  colors: [
+                    Color(0xFF1A1A2E),
+                    Color(0xFF0F172A),
+                    AppColors.background,
+                  ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -333,9 +338,7 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
       children: [
         Expanded(
           child: _buildScoreCard(
-            label: _game.mode == DotsGameMode.pve
-                ? 'You (P1)'
-                : 'Player 1',
+            label: _game.mode == DotsGameMode.pve ? 'You (P1)' : 'Player 1',
             value: _game.humanPlayer == DotsPlayer.player1
                 ? _game.player1Score
                 : _game.player2Score,
@@ -363,9 +366,9 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
               const SizedBox(height: 4),
               Text(
                 '${_game.remainingBoxes}',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(color: AppColors.textPrimary),
               ),
             ],
           ),
@@ -373,9 +376,7 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
         const SizedBox(width: 10),
         Expanded(
           child: _buildScoreCard(
-            label: _game.mode == DotsGameMode.pve
-                ? 'AI (P2)'
-                : 'Player 2',
+            label: _game.mode == DotsGameMode.pve ? 'AI (P2)' : 'Player 2',
             value: _game.humanPlayer == DotsPlayer.player1
                 ? _game.player2Score
                 : _game.player1Score,
@@ -449,14 +450,10 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
     final turnLabel = _game.isGameOver
         ? 'Game Over'
         : _game.isAITurn
-            ? 'AI is thinking...'
-            : _game.currentTurn == DotsPlayer.player1
-                ? (_game.mode == DotsGameMode.pve
-                    ? "Your Turn"
-                    : "Player 1's Turn")
-                : (_game.mode == DotsGameMode.pve
-                    ? "AI's Turn"
-                    : "Player 2's Turn");
+        ? 'AI is thinking...'
+        : _game.currentTurn == DotsPlayer.player1
+        ? (_game.mode == DotsGameMode.pve ? "Your Turn" : "Player 1's Turn")
+        : (_game.mode == DotsGameMode.pve ? "AI's Turn" : "Player 2's Turn");
     final turnIcon = _game.currentTurn == DotsPlayer.player1 ? '🟢' : '🔴';
 
     return Container(
@@ -481,27 +478,30 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               child: _game.isGameOver
-                  ? const Icon(Icons.timer_off_rounded,
-                      size: 20, color: AppColors.textSecondary)
+                  ? const Icon(
+                      Icons.timer_off_rounded,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    )
                   : _game.isAITurn
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.primaryLight,
-                          ),
-                        )
-                      : Text(turnIcon, style: const TextStyle(fontSize: 18)),
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primaryLight,
+                      ),
+                    )
+                  : Text(turnIcon, style: const TextStyle(fontSize: 18)),
             ),
             const SizedBox(width: 10),
             Text(
               turnLabel,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: _game.isAITurn
-                        ? AppColors.primaryLight
-                        : AppColors.textPrimary,
-                  ),
+                color: _game.isAITurn
+                    ? AppColors.primaryLight
+                    : AppColors.textPrimary,
+              ),
             ),
           ],
         ),
@@ -573,51 +573,51 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
 
         widgets.add(
           Positioned(
-          left: left,
-          top: top,
-          width: size,
-          height: size,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.0, end: 1.0).animate(
-              CurvedAnimation(parent: anim, curve: Curves.elasticOut),
-            ),
-            child: Container(
-              margin: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: box.owner == DotsPlayer.none
-                  ? null
-                  : box.owner == DotsPlayer.player1
+            left: left,
+            top: top,
+            width: size,
+            height: size,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.0, end: 1.0).animate(
+                CurvedAnimation(parent: anim, curve: Curves.elasticOut),
+              ),
+              child: Container(
+                margin: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: box.owner == DotsPlayer.none
+                      ? null
+                      : box.owner == DotsPlayer.player1
                       ? Color(0xFF059669).withValues(alpha: 0.35)
                       : Color(0xFFDB2777).withValues(alpha: 0.35),
-                borderRadius: BorderRadius.circular(8),
-                border: box.owner != DotsPlayer.none
-                    ? Border.all(
-                        color: box.owner == DotsPlayer.player1
-                            ? Color(0xFF34D399)
-                            : Color(0xFFF472B6),
-                        width: 1.2,
-                      )
-                    : null,
-              ),
-              child: Center(
-                child: box.owner != DotsPlayer.none
-                    ? FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          box.owner == DotsPlayer.player1 ? 'P1' : 'P2',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: box.owner == DotsPlayer.player1
-                                ? Color(0xFF34D399)
-                                : Color(0xFFF472B6),
+                  borderRadius: BorderRadius.circular(8),
+                  border: box.owner != DotsPlayer.none
+                      ? Border.all(
+                          color: box.owner == DotsPlayer.player1
+                              ? Color(0xFF34D399)
+                              : Color(0xFFF472B6),
+                          width: 1.2,
+                        )
+                      : null,
+                ),
+                child: Center(
+                  child: box.owner != DotsPlayer.none
+                      ? FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            box.owner == DotsPlayer.player1 ? 'P1' : 'P2',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: box.owner == DotsPlayer.player1
+                                  ? Color(0xFF34D399)
+                                  : Color(0xFFF472B6),
+                            ),
                           ),
-                        ),
-                      )
-                    : null,
+                        )
+                      : null,
+                ),
               ),
             ),
-          ),
           ),
         );
       }
@@ -635,28 +635,33 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
         final top = r * gap;
         final lineLength = gap - dotSize;
         final thickness = dotSize * 0.55;
+        final bandHeight = gap * 0.55;
 
         final color = line.owner == DotsPlayer.none
             ? AppColors.cardBorder.withValues(alpha: 0.4)
             : line.owner == DotsPlayer.player1
-                ? const Color(0xFF34D399)
-                : const Color(0xFFF472B6);
+            ? const Color(0xFF34D399)
+            : const Color(0xFFF472B6);
 
         widgets.add(
           Positioned(
             left: left,
-            top: top + (dotSize - thickness) / 2,
+            top: top + dotSize / 2 - bandHeight / 2,
             width: gap,
-            height: dotSize,
+            height: bandHeight,
             child: GestureDetector(
               onTap: () => _onHorizontalTap(r, c),
               behavior: HitTestBehavior.opaque,
               child: Center(
                 child: AnimatedBuilder(
                   animation: anim,
-                  builder: (_, __) {
+                  builder: (_, _) {
                     return Container(
-                      width: lineLength * (line.drawn ? 1.0 : (line.drawn ? anim.value : 0.0)) +
+                      width:
+                          lineLength *
+                              (line.drawn
+                                  ? 1.0
+                                  : (line.drawn ? anim.value : 0.0)) +
                           (line.drawn ? 0 : lineLength * 0.15),
                       height: thickness,
                       decoration: BoxDecoration(
@@ -684,12 +689,14 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
             Positioned(
               left: left + lineLength * 0.4,
               top: top + dotSize / 2 - 2,
-              child: Container(
-                width: lineLength * 0.2,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.textMuted.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(2),
+              child: IgnorePointer(
+                child: Container(
+                  width: lineLength * 0.2,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.textMuted.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
             ),
@@ -710,18 +717,19 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
         final top = r * gap + dotSize / 2;
         final lineLength = gap - dotSize;
         final thickness = dotSize * 0.55;
+        final bandWidth = gap * 0.55;
 
         final color = line.owner == DotsPlayer.none
             ? AppColors.cardBorder.withValues(alpha: 0.4)
             : line.owner == DotsPlayer.player1
-                ? const Color(0xFF34D399)
-                : const Color(0xFFF472B6);
+            ? const Color(0xFF34D399)
+            : const Color(0xFFF472B6);
 
         widgets.add(
           Positioned(
-            left: left + (dotSize - thickness) / 2,
+            left: left + dotSize / 2 - bandWidth / 2,
             top: top,
-            width: dotSize,
+            width: bandWidth,
             height: gap,
             child: GestureDetector(
               onTap: () => _onVerticalTap(r, c),
@@ -729,10 +737,11 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
               child: Center(
                 child: AnimatedBuilder(
                   animation: anim,
-                  builder: (_, __) {
+                  builder: (_, _) {
                     return Container(
                       width: thickness,
-                      height: lineLength * (line.drawn ? 1.0 : 0.0) +
+                      height:
+                          lineLength * (line.drawn ? 1.0 : 0.0) +
                           (line.drawn ? 0 : lineLength * 0.15),
                       decoration: BoxDecoration(
                         color: line.drawn ? color : Colors.transparent,
@@ -759,12 +768,14 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
             Positioned(
               left: left + dotSize / 2 - 2,
               top: top + lineLength * 0.4,
-              child: Container(
-                width: 4,
-                height: lineLength * 0.2,
-                decoration: BoxDecoration(
-                  color: AppColors.textMuted.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(2),
+              child: IgnorePointer(
+                child: Container(
+                  width: 4,
+                  height: lineLength * 0.2,
+                  decoration: BoxDecoration(
+                    color: AppColors.textMuted.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
             ),
@@ -785,21 +796,20 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
             top: r * gap,
             width: dotSize,
             height: dotSize,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const RadialGradient(
-                  colors: [
-                    Color(0xFFC4B5FD),
-                    Color(0xFF8B5CF6),
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const RadialGradient(
+                    colors: [Color(0xFFC4B5FD), Color(0xFF8B5CF6)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.6),
+                      blurRadius: 8,
+                    ),
                   ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.6),
-                    blurRadius: 8,
-                  ),
-                ],
               ),
             ),
           ),
@@ -810,7 +820,11 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
   }
 
   Widget _buildDifficultySelector() {
-    final options = [DotsDifficulty.easy, DotsDifficulty.medium, DotsDifficulty.hard];
+    final options = [
+      DotsDifficulty.easy,
+      DotsDifficulty.medium,
+      DotsDifficulty.hard,
+    ];
     final labels = ['Easy', 'Medium', 'Hard'];
     final colors = [AppColors.green, AppColors.gold, AppColors.red];
 
@@ -832,10 +846,7 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
                 decoration: BoxDecoration(
                   gradient: selected
                       ? LinearGradient(
-                          colors: [
-                            colors[i].withValues(alpha: 0.7),
-                            colors[i]
-                          ],
+                          colors: [colors[i].withValues(alpha: 0.7), colors[i]],
                         )
                       : null,
                   borderRadius: BorderRadius.circular(10),
@@ -902,8 +913,9 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color:
-                              selected ? Colors.white : AppColors.textSecondary,
+                          color: selected
+                              ? Colors.white
+                              : AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -922,8 +934,7 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
       opacity: _winOverlayController,
       child: ScaleTransition(
         scale: Tween<double>(begin: 0.9, end: 1).animate(
-          CurvedAnimation(
-              parent: _winOverlayController, curve: Curves.easeOut),
+          CurvedAnimation(parent: _winOverlayController, curve: Curves.easeOut),
         ),
         child: IgnorePointer(
           ignoring: !_game.isGameOver,
@@ -961,11 +972,11 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
                         fit: BoxFit.scaleDown,
                         child: Text(
                           _buildEndTitle(),
-                          style:
-                              Theme.of(context).textTheme.displaySmall?.copyWith(
-                                    color: AppColors.textPrimary,
-                                    height: 1.2,
-                                  ),
+                          style: Theme.of(context).textTheme.displaySmall
+                              ?.copyWith(
+                                color: AppColors.textPrimary,
+                                height: 1.2,
+                              ),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -976,13 +987,15 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceLight,
                           borderRadius: BorderRadius.circular(14),
@@ -992,11 +1005,16 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
                           children: [
                             Column(
                               children: [
-                                const Text('🟢', style: TextStyle(fontSize: 20)),
+                                const Text(
+                                  '🟢',
+                                  style: TextStyle(fontSize: 20),
+                                ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '${_game.player1Score}',
-                                  style: Theme.of(context).textTheme.headlineMedium
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
                                       ?.copyWith(color: Color(0xFF34D399)),
                                 ),
                               ],
@@ -1007,11 +1025,16 @@ class _DotsBoxesScreenState extends State<DotsBoxesScreen>
                             ),
                             Column(
                               children: [
-                                const Text('🔴', style: TextStyle(fontSize: 20)),
+                                const Text(
+                                  '🔴',
+                                  style: TextStyle(fontSize: 20),
+                                ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '${_game.player2Score}',
-                                  style: Theme.of(context).textTheme.headlineMedium
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
                                       ?.copyWith(color: Color(0xFFF472B6)),
                                 ),
                               ],
