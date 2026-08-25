@@ -20,10 +20,18 @@ class _CarromScreenState extends State<CarromScreen>
     with TickerProviderStateMixin {
   late CarromEngine _engine;
   bool _setupOpen = true;
-  int _setupMode = 0;
+  int _setupMode = 0; // 0=vsAI, 1=2P, 2=4P
   CarromDifficulty _difficulty = CarromDifficulty.medium;
+  final List<bool> _seatAI = [false, true, false, false];
+  final List<CarromDifficulty> _seatDiff = [
+    CarromDifficulty.medium,
+    CarromDifficulty.medium,
+    CarromDifficulty.medium,
+    CarromDifficulty.medium,
+  ];
 
   Timer? _gameLoop;
+  Timer? _aiTimer;
   late final AnimationController _pulseController;
   late final AnimationController _winOverlayController;
   late final AnimationController _handoffController;
@@ -33,7 +41,6 @@ class _CarromScreenState extends State<CarromScreen>
   String _handoffName = '';
   CarromPlayer _handoffPlayer = CarromPlayer.one;
 
-  // gesture state
   bool _isDraggingStriker = false;
   bool _isAiming = false;
   Offset _aimStart = Offset.zero;
@@ -41,18 +48,22 @@ class _CarromScreenState extends State<CarromScreen>
   List<Offset> _trajectoryPoints = [];
   double _aimPower = 0;
 
-  // board sizing
   double _boardSize = 0;
   double _scale = 1;
   final double _offsetX = 0;
   final double _offsetY = 0;
 
-  // score display
-  int _scoreOne = 0;
-  int _scoreTwo = 0;
-
   static const Color _white = Color(0xFFF5F5F0);
   static const Color _black = Color(0xFF2A2A2A);
+  static const Color _red = Color(0xFFDC2626);
+  static const Color _blue = Color(0xFF2563EB);
+
+  Color _playerColor(CarromPlayer p) => switch (p) {
+    CarromPlayer.one => _white,
+    CarromPlayer.two => _black,
+    CarromPlayer.three => _red,
+    CarromPlayer.four => _blue,
+  };
 
   @override
   void initState() {
@@ -70,12 +81,12 @@ class _CarromScreenState extends State<CarromScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _startGameLoop();
   }
 
   @override
   void dispose() {
     _gameLoop?.cancel();
+    _aiTimer?.cancel();
     _pulseController.dispose();
     _winOverlayController.dispose();
     _handoffController.dispose();
@@ -88,15 +99,51 @@ class _CarromScreenState extends State<CarromScreen>
       if (!mounted || _setupOpen) return;
       _engine.update(0.016);
 
-      // Check shot result
       final result = _engine.consumeShotResult();
       if (result != null) {
         _handleShotResult(result);
       }
 
-      setState(() {
-        _scoreOne = _engine.scoreOne;
-        _scoreTwo = _engine.scoreTwo;
+      // AI trigger
+      if (_engine.isAITurn &&
+          _engine.phase == TurnPhase.placeStriker &&
+          _aiTimer == null) {
+        _triggerAI();
+      }
+
+      setState(() {});
+    });
+  }
+
+  void _triggerAI() {
+    if (_aiTimer != null) return;
+    setState(
+      () => _statusText = '${playerLabel(_engine.currentPlayer)} thinking…',
+    );
+    _aiTimer = Timer(const Duration(milliseconds: 700), () {
+      if (!mounted || _setupOpen) {
+        _aiTimer = null;
+        return;
+      }
+      _aiTimer = null;
+      // Place striker
+      final pos = _engine.aiStrikerPosition();
+      _engine.placeStriker(pos);
+      _engine.phase = TurnPhase.aiming;
+      setState(() {});
+
+      // Small delay then shoot
+      Timer(const Duration(milliseconds: 300), () {
+        if (!mounted || _setupOpen) return;
+        final move = _engine.chooseAIMove();
+        if (move != null) {
+          final (ax, ay, power) = move;
+          _engine.shoot(ax, ay, power);
+          setState(
+            () =>
+                _statusText = '${playerLabel(_engine.currentPlayer)} shooting…',
+          );
+        }
       });
     });
   }
@@ -104,17 +151,8 @@ class _CarromScreenState extends State<CarromScreen>
   void _handleShotResult(ShotResult result) {
     if (result.gameOver) {
       final winner = result.winner;
-      String msg;
-      if (winner == CarromPlayer.one) {
-        msg = _engine.mode == CarromGameMode.local
-            ? 'Player 1 wins!'
-            : 'You win!';
-      } else {
-        msg = _engine.mode == CarromGameMode.local
-            ? 'Player 2 wins!'
-            : 'AI wins!';
-      }
-      setState(() => _statusText = msg);
+      final name = _playerName(winner);
+      setState(() => _statusText = '$name wins!');
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) _winOverlayController.forward();
       });
@@ -140,15 +178,18 @@ class _CarromScreenState extends State<CarromScreen>
   }
 
   void _maybeShowHandoff() {
-    if (_engine.mode == CarromGameMode.local && !_engine.isAITurn) {
+    if (_engine.isAITurn) {
+      setState(
+        () => _statusText = '${playerLabel(_engine.currentPlayer)} thinking…',
+      );
+      return;
+    }
+    // Human's turn — show handoff in local modes
+    if (mode == CarromGameMode.local2 || mode == CarromGameMode.local4) {
       _handoffPlayer = _engine.currentPlayer;
-      _handoffName = _engine.currentPlayer == CarromPlayer.one
-          ? 'Player 1'
-          : 'Player 2';
+      _handoffName = _playerName(_engine.currentPlayer);
       _showHandoff = true;
       _handoffController.forward(from: 0);
-    } else if (_engine.isAITurn) {
-      setState(() => _statusText = 'AI is thinking…');
     }
   }
 
@@ -157,23 +198,44 @@ class _CarromScreenState extends State<CarromScreen>
       if (!mounted) return;
       setState(() {
         _showHandoff = false;
-        _statusText = _engine.currentPlayer == CarromPlayer.one
-            ? 'Your turn — place striker'
-            : 'Your turn — place striker';
+        _statusText = '${_playerName(_engine.currentPlayer)} — place striker';
       });
     });
   }
 
+  String _playerName(CarromPlayer? p) {
+    if (p == null) return 'Unknown';
+    return playerLabel(p);
+  }
+
+  CarromGameMode get mode => _engine.mode;
+
   // ---------------------------------------------------------------- setup
 
   void _startGame() {
-    final mode = _setupMode == 0 ? CarromGameMode.vsAI : CarromGameMode.local;
-    _engine = CarromEngine(mode: mode, difficulty: _difficulty);
+    if (_setupMode == 0) {
+      _engine = CarromEngine(mode: CarromGameMode.ai, difficulty: _difficulty);
+    } else if (_setupMode == 1) {
+      _engine = CarromEngine(mode: CarromGameMode.local2);
+    } else {
+      final seatMap = <CarromPlayer, PlayerSeat>{};
+      final players = [
+        CarromPlayer.one,
+        CarromPlayer.two,
+        CarromPlayer.three,
+        CarromPlayer.four,
+      ];
+      for (int i = 0; i < 4; i++) {
+        seatMap[players[i]] = PlayerSeat(
+          isAI: _seatAI[i],
+          difficulty: _seatDiff[i],
+        );
+      }
+      _engine = CarromEngine(playerSeats: seatMap);
+    }
     setState(() {
       _setupOpen = false;
-      _scoreOne = 0;
-      _scoreTwo = 0;
-      _statusText = 'Place the striker on the baseline';
+      _statusText = '${_playerName(_engine.currentPlayer)} — place striker';
     });
     _startGameLoop();
   }
@@ -200,7 +262,7 @@ class _CarromScreenState extends State<CarromScreen>
       );
       final dx = boardPos.dx - striker.x;
       final dy = boardPos.dy - striker.y;
-      if (dx * dx + dy * dy < 40 * 40) {
+      if (dx * dx + dy * dy < 50 * 50) {
         _isDraggingStriker = true;
         HapticFeedback.selectionClick();
       }
@@ -217,7 +279,12 @@ class _CarromScreenState extends State<CarromScreen>
     final boardPos = _screenToBoard(details.localPosition);
 
     if (_isDraggingStriker && _engine.phase == TurnPhase.placeStriker) {
-      _engine.placeStriker(boardPos.dx);
+      final side = playerSide(_engine.currentPlayer);
+      if (side == BoardSide.bottom || side == BoardSide.top) {
+        _engine.placeStriker(boardPos.dx);
+      } else {
+        _engine.placeStriker(boardPos.dy);
+      }
       setState(() {});
     } else if (_isAiming && _engine.phase == TurnPhase.aiming) {
       _aimCurrent = boardPos;
@@ -226,7 +293,6 @@ class _CarromScreenState extends State<CarromScreen>
       final dist = math.sqrt(dx * dx + dy * dy);
       _aimPower = (dist / 150).clamp(0.0, 1.0);
 
-      // Compute trajectory
       final striker = _engine.discs.firstWhere(
         (d) => d.type == DiscType.striker,
         orElse: () => CarromDisc(x: 0, y: 0, type: DiscType.striker),
@@ -268,7 +334,7 @@ class _CarromScreenState extends State<CarromScreen>
           _trajectoryPoints = [];
           _aimPower = 0;
           _engine.phase = TurnPhase.placeStriker;
-          _statusText = 'Place the striker on the baseline';
+          _statusText = '${_playerName(_engine.currentPlayer)} — place striker';
         });
       }
     }
@@ -278,9 +344,21 @@ class _CarromScreenState extends State<CarromScreen>
     if (_setupOpen || _engine.isAITurn) return;
     if (_engine.phase == TurnPhase.placeStriker) {
       final boardPos = _screenToBoard(details.localPosition);
-      // If tapping near baseline, place striker there
-      if ((boardPos.dy - CarromEngine.baselineY).abs() < 30) {
-        _engine.placeStriker(boardPos.dx);
+      final side = playerSide(_engine.currentPlayer);
+      final checkPos = side == BoardSide.bottom || side == BoardSide.top
+          ? boardPos.dy
+          : boardPos.dx;
+      final baselineVal = side == BoardSide.bottom || side == BoardSide.top
+          ? (side == BoardSide.bottom
+                ? CarromEngine.baselineBottomY
+                : CarromEngine.baselineTopY)
+          : boardPos.dy;
+      if ((checkPos - baselineVal).abs() < 30) {
+        if (side == BoardSide.bottom || side == BoardSide.top) {
+          _engine.placeStriker(boardPos.dx);
+        } else {
+          _engine.placeStriker(boardPos.dy);
+        }
         _engine.phase = TurnPhase.aiming;
         setState(() => _statusText = 'Drag to aim and shoot');
       }
@@ -295,7 +373,6 @@ class _CarromScreenState extends State<CarromScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // gradient header
           Positioned(
             top: 0,
             left: 0,
@@ -379,7 +456,7 @@ class _CarromScreenState extends State<CarromScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('🎯', style: TextStyle(fontSize: 56)),
+              const Text('\uD83C\uDFAF', style: TextStyle(fontSize: 56)),
               const SizedBox(height: 14),
               Text(
                 'Carrom Pool',
@@ -388,8 +465,6 @@ class _CarromScreenState extends State<CarromScreen>
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Mode selector
               Text(
                 'Game Mode',
                 style: TextStyle(color: AppColors.textSecondary),
@@ -397,9 +472,11 @@ class _CarromScreenState extends State<CarromScreen>
               const SizedBox(height: 10),
               Row(
                 children: [
-                  _modeCard(0, '🤖', 'vs AI'),
-                  const SizedBox(width: 10),
-                  _modeCard(1, '👥', 'Local'),
+                  _modeCard(0, '\uD83E\uDD16', 'vs AI'),
+                  const SizedBox(width: 8),
+                  _modeCard(1, '\uD83D\uDC65', '2 Player'),
+                  const SizedBox(width: 8),
+                  _modeCard(2, '\uD83C\uDF1F', '4 Player'),
                 ],
               ),
 
@@ -410,61 +487,42 @@ class _CarromScreenState extends State<CarromScreen>
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: CarromDifficulty.values.map((d) {
-                    final selected = _difficulty == d;
-                    final label = d.name[0].toUpperCase() + d.name.substring(1);
-                    final color = switch (d) {
-                      CarromDifficulty.easy => AppColors.green,
-                      CarromDifficulty.medium => AppColors.gold,
-                      CarromDifficulty.hard => AppColors.red,
-                    };
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _difficulty = d),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: selected
-                                ? LinearGradient(colors: [color, color])
-                                : null,
-                            color: selected ? null : AppColors.surfaceLight,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: selected ? color : AppColors.cardBorder,
-                              width: selected ? 1.2 : 0.5,
-                            ),
-                          ),
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: selected
-                                  ? Colors.white
-                                  : AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                _difficultyRow(
+                  _difficulty,
+                  (d) => setState(() => _difficulty = d),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'You play \u26AA White \u00B7 AI plays \u26AB Black',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
 
-              const SizedBox(height: 18),
-              Text(
-                _setupMode == 0
-                    ? 'You play ⚪ White · AI plays ⚫ Black'
-                    : 'Pass the device each turn',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              ),
+              if (_setupMode == 2) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Seat Configuration',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 10),
+                for (int i = 0; i < 4; i++) _seatConfig(i),
+              ],
+
+              if (_setupMode == 1)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    'Pass the device each turn',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+
               const SizedBox(height: 18),
               GradientButton(
                 text: 'Start Game',
@@ -486,7 +544,7 @@ class _CarromScreenState extends State<CarromScreen>
         onTap: () => setState(() => _setupMode = mode),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
             gradient: selected ? AppColors.buttonGradient : null,
             color: selected ? null : AppColors.surfaceLight,
@@ -498,12 +556,12 @@ class _CarromScreenState extends State<CarromScreen>
           ),
           child: Column(
             children: [
-              Text(emoji, style: const TextStyle(fontSize: 28)),
+              Text(emoji, style: const TextStyle(fontSize: 24)),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: selected ? Colors.white : AppColors.textPrimary,
                 ),
@@ -515,92 +573,218 @@ class _CarromScreenState extends State<CarromScreen>
     );
   }
 
+  Widget _difficultyRow(
+    CarromDifficulty current,
+    ValueChanged<CarromDifficulty> onSelected,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: CarromDifficulty.values.map((d) {
+        final selected = current == d;
+        final label = d.name[0].toUpperCase() + d.name.substring(1);
+        final color = switch (d) {
+          CarromDifficulty.easy => AppColors.green,
+          CarromDifficulty.medium => AppColors.gold,
+          CarromDifficulty.hard => AppColors.red,
+        };
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: GestureDetector(
+            onTap: () => onSelected(d),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: selected
+                    ? LinearGradient(colors: [color, color])
+                    : null,
+                color: selected ? null : AppColors.surfaceLight,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: selected ? color : AppColors.cardBorder,
+                  width: selected ? 1.2 : 0.5,
+                ),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _seatConfig(int index) {
+    final players = [
+      CarromPlayer.one,
+      CarromPlayer.two,
+      CarromPlayer.three,
+      CarromPlayer.four,
+    ];
+    final p = players[index];
+    final emoji = playerEmoji(p);
+    final isAI = _seatAI[index];
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.cardBorder, width: 0.5),
+      ),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 20)),
+          const SizedBox(width: 8),
+          Text(
+            playerLabel(p),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const Spacer(),
+          // AI toggle
+          GestureDetector(
+            onTap: () => setState(() => _seatAI[index] = !_seatAI[index]),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isAI
+                    ? AppColors.primary.withValues(alpha: 0.15)
+                    : AppColors.cardBg,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isAI ? AppColors.primary : AppColors.cardBorder,
+                  width: 0.5,
+                ),
+              ),
+              child: Text(
+                isAI ? 'AI' : 'Human',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isAI ? AppColors.primary : AppColors.textSecondary,
+                ),
+              ),
+            ),
+          ),
+          if (isAI) ...[
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 70,
+              child: _difficultyRow(_seatDiff[index], (d) {
+                setState(() => _seatDiff[index] = d);
+              }),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   // --------------------------------------------------------- score
 
   Widget _buildScoreRow() {
-    final isOneTurn = _engine.currentPlayer == CarromPlayer.one;
-    return Row(
+    final players = _engine.activePlayers;
+    final isHorizontal = players.length <= 2;
+    if (isHorizontal) {
+      return Row(
+        children: [
+          for (int i = 0; i < players.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(child: _scoreCard(players[i])),
+          ],
+        ],
+      );
+    }
+    return Column(
       children: [
-        _scoreCard(
-          '⚪',
-          'P1',
-          _scoreOne,
-          _engine.remainingWhite,
-          isOneTurn && !_engine.isAITurn,
+        Row(
+          children: [
+            Expanded(child: _scoreCard(players[0])),
+            const SizedBox(width: 8),
+            Expanded(child: _scoreCard(players[1])),
+          ],
         ),
-        const SizedBox(width: 8),
-        _scoreCard(
-          '⚫',
-          _engine.mode == CarromGameMode.local ? 'P2' : 'AI',
-          _scoreTwo,
-          _engine.remainingBlack,
-          !isOneTurn || _engine.isAITurn,
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _scoreCard(players[2])),
+            const SizedBox(width: 8),
+            Expanded(child: _scoreCard(players[3])),
+          ],
         ),
       ],
     );
   }
 
-  Widget _scoreCard(
-    String emoji,
-    String label,
-    int score,
-    int remaining,
-    bool active,
-  ) {
+  Widget _scoreCard(CarromPlayer p) {
+    final active = _engine.currentPlayer == p;
     final color = active ? const Color(0xFFF59E0B) : AppColors.cardBorder;
-    return Expanded(
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
-          color: active
-              ? const Color(0xFFF59E0B).withValues(alpha: 0.12)
-              : AppColors.cardBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color, width: active ? 1.4 : 0.5),
-          boxShadow: active
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
-                    blurRadius: 10,
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 16)),
-            const SizedBox(width: 8),
-            Column(
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
+    final score = _engine.scores[p] ?? 0;
+    final discType = playerDisc(p);
+    final remaining = _engine.remainingOf(discType);
+    final isAI = _engine.seats[p]?.isAI ?? false;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      decoration: BoxDecoration(
+        color: active
+            ? const Color(0xFFF59E0B).withValues(alpha: 0.12)
+            : AppColors.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color, width: active ? 1.4 : 0.5),
+        boxShadow: active
+            ? [
+                BoxShadow(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                  blurRadius: 10,
                 ),
-                Text(
-                  '$score',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: active
-                        ? const Color(0xFFF59E0B)
-                        : AppColors.textPrimary,
-                  ),
+              ]
+            : null,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(playerEmoji(p), style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 6),
+          Column(
+            children: [
+              Text(
+                '${playerLabel(p)}${isAI ? ' \uD83E\uDD16' : ''}',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
                 ),
-              ],
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '($remaining left)',
-              style: TextStyle(fontSize: 10, color: AppColors.textMuted),
-            ),
-          ],
-        ),
+              ),
+              Text(
+                '$score',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: active
+                      ? const Color(0xFFF59E0B)
+                      : AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '$remaining',
+            style: TextStyle(fontSize: 10, color: AppColors.textMuted),
+          ),
+        ],
       ),
     );
   }
@@ -628,7 +812,11 @@ class _CarromScreenState extends State<CarromScreen>
               ),
             )
           else
-            const Icon(Icons.circle, size: 8, color: Color(0xFFF59E0B)),
+            Icon(
+              Icons.circle,
+              size: 8,
+              color: _playerColor(_engine.currentPlayer),
+            ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -694,7 +882,6 @@ class _CarromScreenState extends State<CarromScreen>
 
     return Column(
       children: [
-        // Power meter
         if (canAim || _isAiming)
           Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -730,10 +917,8 @@ class _CarromScreenState extends State<CarromScreen>
               },
             ),
           ),
-
         Row(
           children: [
-            // Status pill
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
@@ -749,16 +934,14 @@ class _CarromScreenState extends State<CarromScreen>
                     height: 10,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _engine.currentPlayer == CarromPlayer.one
-                          ? _white
-                          : _black,
+                      color: _playerColor(_engine.currentPlayer),
                       border: Border.all(color: AppColors.cardBorder, width: 1),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     isSimulating
-                        ? 'Watching…'
+                        ? 'Watching\u2026'
                         : canPlace
                         ? 'Place striker'
                         : canAim
@@ -780,6 +963,8 @@ class _CarromScreenState extends State<CarromScreen>
               icon: Icons.refresh_rounded,
               onPressed: () {
                 _gameLoop?.cancel();
+                _aiTimer?.cancel();
+                _aiTimer = null;
                 _winOverlayController.reverse();
                 setState(() {
                   _setupOpen = true;
@@ -799,8 +984,7 @@ class _CarromScreenState extends State<CarromScreen>
   // --------------------------------------------------------- handoff
 
   Widget _buildHandoffOverlay() {
-    final isP1 = _handoffPlayer == CarromPlayer.one;
-    final color = isP1 ? _white : _black;
+    final color = _playerColor(_handoffPlayer);
     return Positioned.fill(
       child: FadeTransition(
         opacity: _handoffController,
@@ -899,10 +1083,9 @@ class _CarromScreenState extends State<CarromScreen>
 
   Widget _buildWinOverlay() {
     final winner = _engine.currentPlayer;
-    final isP1 = winner == CarromPlayer.one;
-    final winnerName = _engine.mode == CarromGameMode.local
-        ? (isP1 ? 'Player 1' : 'Player 2')
-        : (isP1 ? 'You' : 'AI');
+    final winnerName = _playerName(winner);
+    final players = _engine.activePlayers;
+
     return Positioned.fill(
       child: FadeTransition(
         opacity: _winOverlayController,
@@ -919,7 +1102,7 @@ class _CarromScreenState extends State<CarromScreen>
               child: Container(
                 margin: const EdgeInsets.all(28),
                 padding: const EdgeInsets.all(26),
-                constraints: const BoxConstraints(maxWidth: 340),
+                constraints: const BoxConstraints(maxWidth: 360),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -942,7 +1125,7 @@ class _CarromScreenState extends State<CarromScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('🏆', style: TextStyle(fontSize: 56)),
+                    const Text('\uD83C\uDFC6', style: TextStyle(fontSize: 56)),
                     const SizedBox(height: 10),
                     Text(
                       '$winnerName wins!',
@@ -950,26 +1133,17 @@ class _CarromScreenState extends State<CarromScreen>
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
                       children: [
-                        _resultColumn(
-                          '⚪ P1',
-                          _scoreOne,
-                          _engine.remainingWhite,
-                        ),
-                        Container(
-                          width: 1,
-                          height: 40,
-                          color: AppColors.cardBorder,
-                        ),
-                        _resultColumn(
-                          _engine.mode == CarromGameMode.local
-                              ? '⚫ P2'
-                              : '⚫ AI',
-                          _scoreTwo,
-                          _engine.remainingBlack,
-                        ),
+                        for (final p in players)
+                          _resultColumn(
+                            '${playerEmoji(p)} ${playerLabel(p)}',
+                            _engine.scores[p] ?? 0,
+                            _engine.remainingOf(playerDisc(p)),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -1002,20 +1176,20 @@ class _CarromScreenState extends State<CarromScreen>
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 4),
         Text(
           '$score',
           style: const TextStyle(
-            fontSize: 28,
+            fontSize: 24,
             fontWeight: FontWeight.bold,
             color: Color(0xFFF59E0B),
           ),
         ),
         Text(
-          '$remaining remaining',
-          style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+          '$remaining left',
+          style: TextStyle(fontSize: 10, color: AppColors.textMuted),
         ),
       ],
     );
@@ -1049,6 +1223,8 @@ class _CarromBoardPainter extends CustomPainter {
   static const Color _pocket = Color(0xFF1A1205);
   static const Color _white = Color(0xFFF5F5F0);
   static const Color _black = Color(0xFF2A2A2A);
+  static const Color _red = Color(0xFFDC2626);
+  static const Color _blue = Color(0xFF2563EB);
   static const Color _queen = Color(0xFFDC2626);
   static const Color _strikerColor = Color(0xFFF59E0B);
   static const Color _line = Color(0xFF8B6914);
@@ -1065,6 +1241,7 @@ class _CarromBoardPainter extends CustomPainter {
     _drawFrame(canvas);
     _drawSurface(canvas);
     _drawDecorations(canvas);
+    _drawBaselines(canvas);
     _drawPockets(canvas);
     _drawTrajectory(canvas);
     _drawAimLine(canvas);
@@ -1075,7 +1252,6 @@ class _CarromBoardPainter extends CustomPainter {
 
   void _drawFrame(Canvas canvas) {
     final board = CarromEngine.boardSize;
-    // Outer frame
     final framePaint = Paint()
       ..shader = const LinearGradient(
         colors: [_frame, _frameDark, _frame],
@@ -1093,7 +1269,6 @@ class _CarromBoardPainter extends CustomPainter {
 
   void _drawSurface(Canvas canvas) {
     final board = CarromEngine.boardSize;
-    // Board surface
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(0, 0, board, board),
@@ -1102,7 +1277,6 @@ class _CarromBoardPainter extends CustomPainter {
       Paint()..color = _boardBg,
     );
 
-    // Subtle wood grain lines
     final grainPaint = Paint()
       ..color = const Color(0xFFE8D5B0)
       ..strokeWidth = 0.5;
@@ -1116,7 +1290,6 @@ class _CarromBoardPainter extends CustomPainter {
     final cx = board / 2;
     final cy = board / 2;
 
-    // Center circle
     final centerPaint = Paint()
       ..color = _line.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
@@ -1126,52 +1299,13 @@ class _CarromBoardPainter extends CustomPainter {
       CarromEngine.centerCircleRadius,
       centerPaint,
     );
-
-    // Center dot
     canvas.drawCircle(Offset(cx, cy), 3, Paint()..color = _line);
 
-    // Baseline
-    final basePaint = Paint()
-      ..color = _line
-      ..strokeWidth = 2;
-    canvas.drawLine(
-      Offset(CarromEngine.baselineMinX, CarromEngine.baselineY),
-      Offset(CarromEngine.baselineMaxX, CarromEngine.baselineY),
-      basePaint,
-    );
+    _drawArrow(canvas, cx, 20, 0);
+    _drawArrow(canvas, cx, board - 20, math.pi);
+    _drawArrow(canvas, 20, cy, math.pi / 2);
+    _drawArrow(canvas, board - 20, cy, -math.pi / 2);
 
-    // Baseline circles at ends
-    canvas.drawCircle(
-      Offset(CarromEngine.baselineMinX, CarromEngine.baselineY),
-      4,
-      Paint()
-        ..color = _line
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
-    );
-    canvas.drawCircle(
-      Offset(CarromEngine.baselineMaxX, CarromEngine.baselineY),
-      4,
-      Paint()
-        ..color = _line
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
-    );
-
-    // Top baseline (opponent)
-    canvas.drawLine(
-      Offset(CarromEngine.baselineMinX, board - CarromEngine.baselineY),
-      Offset(CarromEngine.baselineMaxX, board - CarromEngine.baselineY),
-      basePaint,
-    );
-
-    // Decorative arrows on each side
-    _drawArrow(canvas, cx, 20, 0); // top
-    _drawArrow(canvas, cx, board - 20, math.pi); // bottom
-    _drawArrow(canvas, 20, cy, math.pi / 2); // left
-    _drawArrow(canvas, board - 20, cy, -math.pi / 2); // right
-
-    // Inner border
     final innerPaint = Paint()
       ..color = _line.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
@@ -1183,6 +1317,119 @@ class _CarromBoardPainter extends CustomPainter {
       ),
       innerPaint,
     );
+  }
+
+  void _drawBaselines(Canvas canvas) {
+    final basePaint = Paint()
+      ..color = _line
+      ..strokeWidth = 2;
+
+    bool isActive(CarromPlayer p) => engine.currentPlayer == p;
+
+    void drawBaseline(BoardSide side, CarromPlayer player) {
+      final active = isActive(player);
+      final paint = active
+          ? (Paint()
+              ..color = const Color(0xFFF59E0B)
+              ..strokeWidth = 3)
+          : basePaint;
+
+      switch (side) {
+        case BoardSide.bottom:
+          canvas.drawLine(
+            Offset(CarromEngine.baselineSpanMin, CarromEngine.baselineBottomY),
+            Offset(CarromEngine.baselineSpanMax, CarromEngine.baselineBottomY),
+            paint,
+          );
+          canvas.drawCircle(
+            Offset(CarromEngine.baselineSpanMin, CarromEngine.baselineBottomY),
+            4,
+            Paint()
+              ..color = active ? const Color(0xFFF59E0B) : _line
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.5,
+          );
+          canvas.drawCircle(
+            Offset(CarromEngine.baselineSpanMax, CarromEngine.baselineBottomY),
+            4,
+            Paint()
+              ..color = active ? const Color(0xFFF59E0B) : _line
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.5,
+          );
+        case BoardSide.top:
+          canvas.drawLine(
+            Offset(CarromEngine.baselineSpanMin, CarromEngine.baselineTopY),
+            Offset(CarromEngine.baselineSpanMax, CarromEngine.baselineTopY),
+            paint,
+          );
+          canvas.drawCircle(
+            Offset(CarromEngine.baselineSpanMin, CarromEngine.baselineTopY),
+            4,
+            Paint()
+              ..color = active ? const Color(0xFFF59E0B) : _line
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.5,
+          );
+          canvas.drawCircle(
+            Offset(CarromEngine.baselineSpanMax, CarromEngine.baselineTopY),
+            4,
+            Paint()
+              ..color = active ? const Color(0xFFF59E0B) : _line
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.5,
+          );
+        case BoardSide.right:
+          canvas.drawLine(
+            Offset(CarromEngine.baselineBottomY, CarromEngine.baselineSpanMin),
+            Offset(CarromEngine.baselineBottomY, CarromEngine.baselineSpanMax),
+            paint,
+          );
+          canvas.drawCircle(
+            Offset(CarromEngine.baselineBottomY, CarromEngine.baselineSpanMin),
+            4,
+            Paint()
+              ..color = active ? const Color(0xFFF59E0B) : _line
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.5,
+          );
+          canvas.drawCircle(
+            Offset(CarromEngine.baselineBottomY, CarromEngine.baselineSpanMax),
+            4,
+            Paint()
+              ..color = active ? const Color(0xFFF59E0B) : _line
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.5,
+          );
+        case BoardSide.left:
+          canvas.drawLine(
+            Offset(CarromEngine.baselineTopY, CarromEngine.baselineSpanMin),
+            Offset(CarromEngine.baselineTopY, CarromEngine.baselineSpanMax),
+            paint,
+          );
+          canvas.drawCircle(
+            Offset(CarromEngine.baselineTopY, CarromEngine.baselineSpanMin),
+            4,
+            Paint()
+              ..color = active ? const Color(0xFFF59E0B) : _line
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.5,
+          );
+          canvas.drawCircle(
+            Offset(CarromEngine.baselineTopY, CarromEngine.baselineSpanMax),
+            4,
+            Paint()
+              ..color = active ? const Color(0xFFF59E0B) : _line
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.5,
+          );
+      }
+    }
+
+    // Only draw baselines for active players
+    for (final p in engine.activePlayers) {
+      drawBaseline(playerSide(p), p);
+    }
   }
 
   void _drawArrow(Canvas canvas, double x, double y, double angle) {
@@ -1200,19 +1447,16 @@ class _CarromBoardPainter extends CustomPainter {
 
   void _drawPockets(Canvas canvas) {
     for (final (px, py) in CarromEngine.pockets) {
-      // Pocket shadow
       canvas.drawCircle(
         Offset(px, py),
         CarromEngine.pocketRadius + 2,
         Paint()..color = Colors.black.withValues(alpha: 0.3),
       );
-      // Pocket hole
       canvas.drawCircle(
         Offset(px, py),
         CarromEngine.pocketRadius,
         Paint()..color = _pocket,
       );
-      // Rim
       canvas.drawCircle(
         Offset(px, py),
         CarromEngine.pocketRadius,
@@ -1243,7 +1487,6 @@ class _CarromBoardPainter extends CustomPainter {
     );
     if (striker.pocketed) return;
 
-    // Direction line from striker
     final dx = aimStart.dx - aimCurrent.dx;
     final dy = aimStart.dy - aimCurrent.dy;
     final len = math.sqrt(dx * dx + dy * dy);
@@ -1268,7 +1511,6 @@ class _CarromBoardPainter extends CustomPainter {
   }
 
   void _drawDisc(Canvas canvas, Offset center, double radius, DiscType type) {
-    // Shadow
     canvas.drawCircle(
       center + Offset(1.5, 2),
       radius,
@@ -1285,11 +1527,16 @@ class _CarromBoardPainter extends CustomPainter {
       case DiscType.black:
         baseColor = _black;
         hasRing = true;
+      case DiscType.red:
+        baseColor = _red;
+        hasRing = true;
+      case DiscType.blue:
+        baseColor = _blue;
+        hasRing = true;
       case DiscType.queen:
         baseColor = _queen;
     }
 
-    // Body
     final gradient = RadialGradient(
       colors: [baseColor.withValues(alpha: 0.85), baseColor],
       center: const Alignment(-0.3, -0.3),
@@ -1303,7 +1550,6 @@ class _CarromBoardPainter extends CustomPainter {
         ),
     );
 
-    // Highlight ring
     canvas.drawCircle(
       center,
       radius * 0.7,
@@ -1313,7 +1559,6 @@ class _CarromBoardPainter extends CustomPainter {
         ..strokeWidth = 1,
     );
 
-    // Black piece gold ring
     if (hasRing) {
       canvas.drawCircle(
         center,
@@ -1325,7 +1570,6 @@ class _CarromBoardPainter extends CustomPainter {
       );
     }
 
-    // Queen crown
     if (type == DiscType.queen) {
       canvas.drawCircle(
         center,
@@ -1337,7 +1581,6 @@ class _CarromBoardPainter extends CustomPainter {
       );
     }
 
-    // Striker crosshair
     if (type == DiscType.striker) {
       final crossPaint = Paint()
         ..color = Colors.white.withValues(alpha: 0.5)

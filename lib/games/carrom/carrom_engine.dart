@@ -9,12 +9,15 @@ class CarromEngine {
   static const double strikerRadius = 14;
   static const double carromManRadius = 9;
   static const double queenRadius = 9;
-  static const double baselineY = 345;
-  static const double baselineMinX = 100;
-  static const double baselineMaxX = 300;
   static const double centerX = boardSize / 2;
   static const double centerY = boardSize / 2;
   static const double centerCircleRadius = 40;
+
+  // baselines: (min, max, fixed)
+  static const double baselineSpanMin = 100;
+  static const double baselineSpanMax = 300;
+  static const double baselineBottomY = 345;
+  static const double baselineTopY = 55;
 
   // physics
   static const double friction = 0.991;
@@ -37,55 +40,89 @@ class CarromEngine {
   late List<CarromDisc> discs;
   CarromPlayer currentPlayer = CarromPlayer.one;
   TurnPhase phase = TurnPhase.placeStriker;
-  int whitesPocketed = 0;
-  int blacksPocketed = 0;
   bool queenPending = false;
-  bool queenCoveredByOne = false;
-  bool queenCoveredByTwo = false;
-  int scoreOne = 0;
-  int scoreTwo = 0;
-  CarromGameMode mode = CarromGameMode.vsAI;
-  CarromDifficulty difficulty = CarromDifficulty.medium;
+  CarromPlayer? queenPendingPlayer;
   List<CarromDisc> pocketedThisTurn = [];
+
+  // per-player state
+  late Map<CarromPlayer, int> scores;
+  late Map<CarromPlayer, int> pocketedCount;
+  late List<CarromPlayer> activePlayers;
+  late Map<CarromPlayer, PlayerSeat> seats;
 
   // striker
   double strikerX = centerX;
-  double strikerY = baselineY;
+  double strikerY = baselineBottomY;
 
   CarromEngine({
-    this.mode = CarromGameMode.vsAI,
-    this.difficulty = CarromDifficulty.medium,
+    CarromGameMode mode = CarromGameMode.ai,
+    CarromDifficulty difficulty = CarromDifficulty.medium,
+    Map<CarromPlayer, PlayerSeat>? playerSeats,
   }) {
+    if (playerSeats != null) {
+      seats = playerSeats;
+      activePlayers = playerSeats.keys.toList();
+    } else if (mode == CarromGameMode.ai) {
+      seats = {
+        CarromPlayer.one: const PlayerSeat(isAI: false),
+        CarromPlayer.two: PlayerSeat(isAI: true, difficulty: difficulty),
+      };
+      activePlayers = [CarromPlayer.one, CarromPlayer.two];
+    } else if (mode == CarromGameMode.local4) {
+      seats = {
+        CarromPlayer.one: const PlayerSeat(isAI: false),
+        CarromPlayer.two: const PlayerSeat(isAI: false),
+        CarromPlayer.three: const PlayerSeat(isAI: false),
+        CarromPlayer.four: const PlayerSeat(isAI: false),
+      };
+      activePlayers = [
+        CarromPlayer.one,
+        CarromPlayer.two,
+        CarromPlayer.three,
+        CarromPlayer.four,
+      ];
+    } else {
+      seats = {
+        CarromPlayer.one: const PlayerSeat(isAI: false),
+        CarromPlayer.two: const PlayerSeat(isAI: false),
+      };
+      activePlayers = [CarromPlayer.one, CarromPlayer.two];
+    }
     resetBoard();
   }
+
+  CarromGameMode get mode {
+    if (seats.length == 4) return CarromGameMode.local4;
+    if (seats.values.any((s) => s.isAI)) return CarromGameMode.ai;
+    return CarromGameMode.local2;
+  }
+
+  int get playerCount => activePlayers.length;
 
   // ----------------------------------------------------------- setup
 
   void resetBoard() {
     discs = [];
-    currentPlayer = CarromPlayer.one;
+    currentPlayer = activePlayers.first;
     phase = TurnPhase.placeStriker;
-    whitesPocketed = 0;
-    blacksPocketed = 0;
     queenPending = false;
-    queenCoveredByOne = false;
-    queenCoveredByTwo = false;
-    scoreOne = 0;
-    scoreTwo = 0;
+    queenPendingPlayer = null;
+    scores = {for (final p in activePlayers) p: 0};
+    pocketedCount = {for (final p in activePlayers) p: 0};
     pocketedThisTurn = [];
     strikerX = centerX;
-    strikerY = baselineY;
+    strikerY = baselineBottomY;
     _placePieces();
   }
 
   void _placePieces() {
     discs.clear();
 
-    // Striker
+    // Striker at current player's baseline
     discs.add(
       CarromDisc(
         x: centerX,
-        y: baselineY,
+        y: baselineBottomY,
         type: DiscType.striker,
         radius: strikerRadius,
       ),
@@ -101,14 +138,21 @@ class CarromEngine {
       ),
     );
 
-    // 9 white + 9 black in traditional carrom arrangement
-    // Arranged in a circle pattern around the center
+    if (activePlayers.length == 2) {
+      _placePieces2P();
+    } else {
+      _placePieces4P();
+    }
+
+    _resolveOverlaps();
+  }
+
+  void _placePieces2P() {
+    // 9 white + 9 black arranged around center
     final angles = <double>[];
-    // Inner ring: 6 pieces at radius 20
     for (int i = 0; i < 6; i++) {
       angles.add(i * 60.0);
     }
-    // Middle ring: 3 pieces at radius 36 (alternating)
     for (int i = 0; i < 3; i++) {
       angles.add(i * 120.0 + 30.0);
     }
@@ -116,7 +160,6 @@ class CarromEngine {
     final innerRadius = 22.0;
     final outerRadius = 38.0;
 
-    // Inner ring: alternating white/black
     for (int i = 0; i < 6; i++) {
       final angle = angles[i] * pi / 180;
       final type = i.isEven ? DiscType.white : DiscType.black;
@@ -130,7 +173,6 @@ class CarromEngine {
       );
     }
 
-    // Middle ring
     for (int i = 0; i < 3; i++) {
       final angle = angles[6 + i] * pi / 180;
       final type = i.isEven ? DiscType.white : DiscType.black;
@@ -144,9 +186,8 @@ class CarromEngine {
       );
     }
 
-    // Remaining pieces in outer ring
-    final remainingWhite = 9 - 4; // already placed 4 white (3 inner + 1 outer)
-    final remainingBlack = 9 - 5; // already placed 5 black (3 inner + 2 outer)
+    final remainingWhite = 9 - 4;
+    final remainingBlack = 9 - 5;
 
     for (int i = 0; i < remainingWhite + remainingBlack; i++) {
       final angle = (i * 360.0 / (remainingWhite + remainingBlack)) * pi / 180;
@@ -161,9 +202,46 @@ class CarromEngine {
         ),
       );
     }
+  }
 
-    // Ensure pieces don't overlap with each other or the center
-    _resolveOverlaps();
+  void _placePieces4P() {
+    // 4 pieces per player (white, black, red, blue) in alternating circle
+    final colors = [
+      DiscType.white,
+      DiscType.black,
+      DiscType.red,
+      DiscType.blue,
+    ];
+
+    // Inner ring: 8 pieces
+    for (int i = 0; i < 8; i++) {
+      final angle = i * 45.0 * pi / 180;
+      final type = colors[i % 4];
+      final r = 22.0 + (i % 2) * 6.0;
+      discs.add(
+        CarromDisc(
+          x: centerX + cos(angle) * r,
+          y: centerY + sin(angle) * r,
+          type: type,
+          radius: carromManRadius,
+        ),
+      );
+    }
+
+    // Outer ring: remaining 8 pieces
+    for (int i = 0; i < 8; i++) {
+      final angle = (i * 45.0 + 22.5) * pi / 180;
+      final type = colors[i % 4];
+      final r = 42.0 + (i % 2) * 6.0;
+      discs.add(
+        CarromDisc(
+          x: centerX + cos(angle) * r,
+          y: centerY + sin(angle) * r,
+          type: type,
+          radius: carromManRadius,
+        ),
+      );
+    }
   }
 
   void _resolveOverlaps() {
@@ -210,18 +288,14 @@ class CarromEngine {
   void _subStep(double dt) {
     for (final d in discs) {
       if (d.pocketed || d.type == DiscType.striker) continue;
-      // Friction
       d.vx *= friction;
       d.vy *= friction;
-      // Move
       d.x += d.vx * dt * 60;
       d.y += d.vy * dt * 60;
-      // Stop very slow
       if (d.vx.abs() < minVelocity) d.vx = 0;
       if (d.vy.abs() < minVelocity) d.vy = 0;
     }
 
-    // Striker moves too
     final striker = _striker;
     if (striker != null && !striker.pocketed) {
       striker.vx *= friction;
@@ -265,16 +339,14 @@ class CarromEngine {
 
     if (dist >= minDist || dist == 0) return;
 
-    // Normal
     final nx = dx / dist;
     final ny = dy / dist;
 
-    // Relative velocity
     final dvx = a.vx - b.vx;
     final dvy = a.vy - b.vy;
     final dvn = dvx * nx + dvy * ny;
 
-    if (dvn <= 0) return; // Moving apart
+    if (dvn <= 0) return;
 
     final impulse = dvn * discRestitution;
     a.vx -= impulse * nx;
@@ -282,7 +354,6 @@ class CarromEngine {
     b.vx += impulse * nx;
     b.vy += impulse * ny;
 
-    // Separate
     final overlap = (minDist - dist) / 2 + 0.5;
     a.x -= overlap * nx;
     a.y -= overlap * ny;
@@ -293,7 +364,6 @@ class CarromEngine {
   void _resolveWallCollisions() {
     for (final d in discs) {
       if (d.pocketed) continue;
-      // Square wall bounds
       if (d.x - d.radius < 0) {
         d.x = d.radius;
         d.vx = d.vx.abs() * wallRestitution;
@@ -330,20 +400,61 @@ class CarromEngine {
     }
   }
 
+  // ------------------------------------------------------ baseline helpers
+
+  bool _isHorizontalSide(BoardSide side) =>
+      side == BoardSide.bottom || side == BoardSide.top;
+
   // ------------------------------------------------------ striker control
 
-  void placeStriker(double x) {
-    strikerX = x.clamp(
-      baselineMinX + strikerRadius,
-      baselineMaxX - strikerRadius,
-    );
-    strikerY = baselineY;
+  void placeStriker(double pos) {
+    final side = playerSide(currentPlayer);
+    if (_isHorizontalSide(side)) {
+      strikerX = pos.clamp(
+        baselineSpanMin + strikerRadius,
+        baselineSpanMax - strikerRadius,
+      );
+      strikerY = side == BoardSide.bottom ? baselineBottomY : baselineTopY;
+    } else {
+      strikerY = pos.clamp(
+        baselineSpanMin + strikerRadius,
+        baselineSpanMax - strikerRadius,
+      );
+      strikerX = side == BoardSide.right ? baselineBottomY : baselineTopY;
+    }
     final striker = _striker;
     if (striker != null) {
       striker.x = strikerX;
       striker.y = strikerY;
       striker.pocketed = false;
     }
+  }
+
+  /// Returns a good position along the current player's baseline for AI.
+  double aiStrikerPosition() {
+    final side = playerSide(currentPlayer);
+    final targetType = playerDisc(currentPlayer);
+    final targets = discs
+        .where((d) => !d.pocketed && d.type == targetType)
+        .toList();
+    if (targets.isEmpty) return (baselineSpanMin + baselineSpanMax) / 2;
+
+    // Pick the target closest to center and aim along the axis
+    double bestPos = (baselineSpanMin + baselineSpanMax) / 2;
+    double bestDist = 999999.0;
+    for (final t in targets) {
+      final d = sqrt(
+        (t.x - centerX) * (t.x - centerX) + (t.y - centerY) * (t.y - centerY),
+      );
+      if (d < bestDist) {
+        bestDist = d;
+        bestPos = _isHorizontalSide(side) ? t.x : t.y;
+      }
+    }
+    return bestPos.clamp(
+      baselineSpanMin + strikerRadius + 10,
+      baselineSpanMax - strikerRadius - 10,
+    );
   }
 
   CarromDisc? get _striker {
@@ -362,7 +473,7 @@ class CarromEngine {
 
     final nx = aimDx / len;
     final ny = aimDy / len;
-    final speed = power * 18; // max speed
+    final speed = power * 18;
 
     striker.vx = nx * speed;
     striker.vy = ny * speed;
@@ -376,97 +487,93 @@ class CarromEngine {
   void _evaluateShot() {
     phase = TurnPhase.evaluating;
 
-    int whiteCount = 0;
-    int blackCount = 0;
     bool queenIn = false;
     bool strikerIn = false;
+    final Map<CarromPlayer, int> pocketed = {};
 
     for (final d in pocketedThisTurn) {
-      switch (d.type) {
-        case DiscType.white:
-          whiteCount++;
-          break;
-        case DiscType.black:
-          blackCount++;
-          break;
-        case DiscType.queen:
-          queenIn = true;
-          break;
-        case DiscType.striker:
-          strikerIn = true;
-          break;
+      if (d.type == DiscType.queen) {
+        queenIn = true;
+      } else if (d.type == DiscType.striker) {
+        strikerIn = true;
+      } else {
+        // Find which player owns this disc
+        for (final p in activePlayers) {
+          if (playerDisc(p) == d.type) {
+            pocketed[p] = (pocketed[p] ?? 0) + 1;
+            break;
+          }
+        }
       }
     }
 
     bool foul = strikerIn;
     bool turnContinues = false;
 
-    final isOne = currentPlayer == CarromPlayer.one;
-
-    // Update scores
-    if (isOne) {
-      whitesPocketed += whiteCount;
-      scoreOne += whiteCount;
-    } else {
-      blacksPocketed += blackCount;
-      scoreTwo += blackCount;
+    // Score pocketed pieces for current player
+    final myPocketed = pocketed[currentPlayer] ?? 0;
+    if (!foul && myPocketed > 0) {
+      scores[currentPlayer] = (scores[currentPlayer] ?? 0) + myPocketed;
+      pocketedCount[currentPlayer] =
+          (pocketedCount[currentPlayer] ?? 0) + myPocketed;
     }
 
     // Queen handling
+    bool queenCovered = false;
     if (queenIn && !queenPending) {
       queenPending = true;
-      if (isOne) {
-        queenCoveredByOne = false;
-      } else {
-        queenCoveredByTwo = false;
-      }
-    } else if (queenIn && queenPending) {
-      // Queen was already pending — this shouldn't happen normally
+      queenPendingPlayer = currentPlayer;
     }
 
-    if (queenPending) {
-      final covered = isOne ? whiteCount > 0 : blackCount > 0;
-      if (covered) {
-        // Queen covered
-        if (isOne) {
-          queenCoveredByOne = true;
-          scoreOne += 5;
-        } else {
-          queenCoveredByTwo = true;
-          scoreTwo += 5;
-        }
+    if (queenPending && queenPendingPlayer == currentPlayer) {
+      if (myPocketed > 0) {
+        // Covered!
+        queenCovered = true;
+        scores[currentPlayer] = (scores[currentPlayer] ?? 0) + 5;
         queenPending = false;
-      } else if (!queenIn) {
-        // Queen returned to center (was pending but not covered)
-        // Actually queen was just pocketed this turn — check if covered
+        queenPendingPlayer = null;
+      } else if (queenIn) {
+        // Pocketed queen on this shot but didn't cover — queen stays pending
+      } else if (!queenIn && pocketedThisTurn.isNotEmpty) {
+        // Queen was pending from before, not covered this turn
+        _returnQueenToCenter();
+        queenPending = false;
+        queenPendingPlayer = null;
       }
-    }
-
-    // If queen was pocketed this turn and was pending from before
-    if (queenPending && !queenIn) {
-      // Queen was pending, no cover this shot — queen stays on board (already returned by being pocketed before)
-      queenPending = false;
+    } else if (queenIn && queenPending && queenPendingPlayer != currentPlayer) {
+      // Different player pocketed queen while another player's queen is pending
+      _returnQueenToCenter();
     }
 
     // Turn continues if player pocketed their own pieces (and no foul)
     if (!foul) {
-      turnContinues = isOne ? whiteCount > 0 : blackCount > 0;
+      turnContinues = myPocketed > 0;
     }
 
-    // Check game over
+    // Check game over: any player has all their pieces pocketed
     bool gameOver = false;
     CarromPlayer? winner;
+    final piecesPerPlayer = activePlayers.length == 2 ? 9 : 4;
 
-    if (whitesPocketed >= 9) {
-      gameOver = true;
-      winner = CarromPlayer.one;
-    } else if (blacksPocketed >= 9) {
-      gameOver = true;
-      winner = CarromPlayer.two;
+    for (final p in activePlayers) {
+      if ((pocketedCount[p] ?? 0) >= piecesPerPlayer && !queenPending) {
+        gameOver = true;
+        break;
+      }
+    }
+
+    // Winner = player with highest score (most pieces + queen bonus)
+    if (gameOver) {
+      int bestScore = -1;
+      for (final p in activePlayers) {
+        if ((scores[p] ?? 0) > bestScore) {
+          bestScore = scores[p]!;
+          winner = p;
+        }
+      }
     }
 
     if (foul) {
-      // Reset striker
       final striker = _striker;
       if (striker != null) {
         striker.pocketed = false;
@@ -476,17 +583,13 @@ class CarromEngine {
     }
 
     final result = ShotResult(
-      whitesPocketed: whiteCount,
-      blacksPocketed: blackCount,
       queenPocketed: queenIn,
       strikerPocketed: strikerIn,
       turnContinues: turnContinues,
-      queenCovered:
-          queenIn &&
-          queenPending == false &&
-          (isOne ? queenCoveredByOne : queenCoveredByTwo),
+      queenCovered: queenCovered,
       gameOver: gameOver,
       winner: winner,
+      pocketedByPlayer: pocketed,
     );
 
     if (gameOver) {
@@ -501,18 +604,39 @@ class CarromEngine {
       phase = TurnPhase.placeStriker;
     }
 
-    // Reset striker position for next turn
-    strikerX = centerX;
-    strikerY = baselineY;
+    // Reset striker to new player's baseline
+    _resetStrikerToBaseline();
+
+    _shotResult = result;
+  }
+
+  void _returnQueenToCenter() {
+    discs.add(
+      CarromDisc(
+        x: centerX,
+        y: centerY,
+        type: DiscType.queen,
+        radius: queenRadius,
+      ),
+    );
+  }
+
+  void _resetStrikerToBaseline() {
+    final side = playerSide(currentPlayer);
+    if (_isHorizontalSide(side)) {
+      strikerX = centerX;
+      strikerY = side == BoardSide.bottom ? baselineBottomY : baselineTopY;
+    } else {
+      strikerX = side == BoardSide.right ? baselineBottomY : baselineTopY;
+      strikerY = centerX;
+    }
     final striker = _striker;
     if (striker != null) {
-      striker.x = centerX;
-      striker.y = baselineY;
+      striker.x = strikerX;
+      striker.y = strikerY;
       striker.vx = 0;
       striker.vy = 0;
     }
-
-    _shotResult = result;
   }
 
   ShotResult? _shotResult;
@@ -530,28 +654,26 @@ class CarromEngine {
     return count;
   }
 
+  int remainingOf(DiscType type) => _countOnBoard(type);
+
   void _advanceTurn() {
+    final piecesPerPlayer = activePlayers.length == 2 ? 9 : 4;
+    int idx = activePlayers.indexOf(currentPlayer);
     do {
-      currentPlayer = currentPlayer == CarromPlayer.one
-          ? CarromPlayer.two
-          : CarromPlayer.one;
-    } while (_isFinished(currentPlayer));
+      idx = (idx + 1) % activePlayers.length;
+      currentPlayer = activePlayers[idx];
+    } while ((pocketedCount[currentPlayer] ?? 0) >= piecesPerPlayer);
 
     phase = TurnPhase.placeStriker;
   }
 
-  bool _isFinished(CarromPlayer p) {
-    if (p == CarromPlayer.one) return whitesPocketed >= 9;
-    return blacksPocketed >= 9;
-  }
-
   bool get isAITurn {
-    if (mode == CarromGameMode.local) return false;
-    return currentPlayer == CarromPlayer.two;
+    final seat = seats[currentPlayer];
+    return seat?.isAI ?? false;
   }
 
-  int get remainingWhite => _countOnBoard(DiscType.white);
-  int get remainingBlack => _countOnBoard(DiscType.black);
+  CarromDifficulty get currentDifficulty =>
+      seats[currentPlayer]?.difficulty ?? CarromDifficulty.medium;
 
   // ----------------------------------------------------------- AI
 
@@ -559,17 +681,12 @@ class CarromEngine {
     final striker = _striker;
     if (striker == null || striker.pocketed) return null;
 
-    final targetType = currentPlayer == CarromPlayer.one
-        ? DiscType.white
-        : DiscType.black;
+    final targetType = playerDisc(currentPlayer);
     final targets = discs
         .where((d) => !d.pocketed && d.type == targetType)
         .toList();
 
-    if (targets.isEmpty) {
-      // No own pieces left — try to hit anything
-      return _randomShot();
-    }
+    if (targets.isEmpty) return _randomShot();
 
     double bestScore = -1;
     double bestAimX = 0, bestAimY = 0, bestPower = 0.8;
@@ -579,19 +696,16 @@ class CarromEngine {
         final score = _evaluateAim(striker, target, px, py);
         if (score > bestScore) {
           bestScore = score;
-          // Compute aim
+
           final tx = target.x - striker.x;
           final ty = target.y - striker.y;
           final tDist = sqrt(tx * tx + ty * ty);
 
-          // Direction from target to pocket
           final tpDx = px - target.x;
           final tpDy = py - target.y;
           final tpDist = sqrt(tpDx * tpDx + tpDy * tpDy);
 
           if (tDist > 0 && tpDist > 0) {
-            // Aim direction: we want to hit the target so it goes toward pocket
-            // The striker should hit the target on the side opposite to the pocket
             final hitX =
                 target.x - (tpDx / tpDist) * (target.radius + striker.radius);
             final hitY =
@@ -607,14 +721,14 @@ class CarromEngine {
 
     if (bestScore < 0) return _randomShot();
 
-    // Apply difficulty error
-    final errorAngle = _difficultyErrorAngle();
+    final diff = currentDifficulty;
+    final errorAngle = _difficultyErrorAngle(diff);
     final cosE = cos(errorAngle);
     final sinE = sin(errorAngle);
     final ax = bestAimX * cosE - bestAimY * sinE;
     final ay = bestAimX * sinE + bestAimY * cosE;
 
-    final powerVariance = _difficultyPowerVariance();
+    final powerVariance = _difficultyPowerVariance(diff);
     final power = (bestPower * powerVariance).clamp(0.3, 1.0);
 
     return (ax, ay, power);
@@ -636,14 +750,9 @@ class CarromEngine {
 
     if (tDist == 0 || tpDist == 0) return -1;
 
-    // Cut angle: angle between striker→target and target→pocket
     final cosAngle = (tx * tpDx + ty * tpDy) / (tDist * tpDist);
     final cutAngle = acos(cosAngle.clamp(-1, 1));
-
-    // Direct shots are better (cut angle close to pi = 180 degrees is ideal)
     final directness = (pi - cutAngle).abs() / pi;
-
-    // Closer is easier
     final distanceScore = 1.0 - (tDist / 300).clamp(0, 1);
 
     return directness * 60 + distanceScore * 40;
@@ -655,8 +764,8 @@ class CarromEngine {
     return (cos(angle), sin(angle), power);
   }
 
-  double _difficultyErrorAngle() {
-    final base = switch (difficulty) {
+  double _difficultyErrorAngle(CarromDifficulty diff) {
+    final base = switch (diff) {
       CarromDifficulty.easy => 15.0,
       CarromDifficulty.medium => 8.0,
       CarromDifficulty.hard => 3.0,
@@ -664,8 +773,8 @@ class CarromEngine {
     return (_rng.nextDouble() * 2 - 1) * base * pi / 180;
   }
 
-  double _difficultyPowerVariance() {
-    final (min, max) = switch (difficulty) {
+  double _difficultyPowerVariance(CarromDifficulty diff) {
+    final (min, max) = switch (diff) {
       CarromDifficulty.easy => (0.6, 0.85),
       CarromDifficulty.medium => (0.75, 0.95),
       CarromDifficulty.hard => (0.9, 1.0),
@@ -699,7 +808,6 @@ class CarromEngine {
       py += dy * stepSize;
       points.add((px, py));
 
-      // Wall bounce
       if (px - strikerRadius < 0 || px + strikerRadius > boardSize) {
         dx = -dx;
         px = px.clamp(strikerRadius, boardSize - strikerRadius);
@@ -709,7 +817,6 @@ class CarromEngine {
         py = py.clamp(strikerRadius, boardSize - strikerRadius);
       }
 
-      // Check disc hit
       bool hit = false;
       for (final d in discs) {
         if (d.pocketed || d.type == DiscType.striker) continue;

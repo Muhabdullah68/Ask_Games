@@ -1,6 +1,8 @@
-enum DiscType { striker, white, black, queen }
+enum DiscType { striker, white, black, red, blue, queen }
 
-enum CarromPlayer { one, two }
+enum CarromPlayer { one, two, three, four }
+
+enum BoardSide { bottom, right, top, left }
 
 enum TurnPhase {
   placeStriker,
@@ -13,7 +15,44 @@ enum TurnPhase {
 
 enum CarromDifficulty { easy, medium, hard }
 
-enum CarromGameMode { vsAI, local }
+enum CarromGameMode { ai, local2, local4 }
+
+BoardSide playerSide(CarromPlayer p) => switch (p) {
+  CarromPlayer.one => BoardSide.bottom,
+  CarromPlayer.two => BoardSide.right,
+  CarromPlayer.three => BoardSide.top,
+  CarromPlayer.four => BoardSide.left,
+};
+
+DiscType playerDisc(CarromPlayer p) => switch (p) {
+  CarromPlayer.one => DiscType.white,
+  CarromPlayer.two => DiscType.black,
+  CarromPlayer.three => DiscType.red,
+  CarromPlayer.four => DiscType.blue,
+};
+
+String playerLabel(CarromPlayer p) => switch (p) {
+  CarromPlayer.one => 'Player 1',
+  CarromPlayer.two => 'Player 2',
+  CarromPlayer.three => 'Player 3',
+  CarromPlayer.four => 'Player 4',
+};
+
+String playerEmoji(CarromPlayer p) => switch (p) {
+  CarromPlayer.one => '\u26AA',
+  CarromPlayer.two => '\u26AB',
+  CarromPlayer.three => '\uD83D\uDD34',
+  CarromPlayer.four => '\uD83D\uDD35',
+};
+
+class PlayerSeat {
+  final bool isAI;
+  final CarromDifficulty difficulty;
+  const PlayerSeat({
+    this.isAI = false,
+    this.difficulty = CarromDifficulty.medium,
+  });
+}
 
 class CarromDisc {
   double x;
@@ -48,23 +87,21 @@ class CarromDisc {
 }
 
 class ShotResult {
-  final int whitesPocketed;
-  final int blacksPocketed;
   final bool queenPocketed;
   final bool strikerPocketed;
   final bool turnContinues;
   final bool queenCovered;
   final bool gameOver;
   final CarromPlayer? winner;
+  final Map<CarromPlayer, int> pocketedByPlayer;
 
   const ShotResult({
-    required this.whitesPocketed,
-    required this.blacksPocketed,
     required this.queenPocketed,
     required this.strikerPocketed,
     required this.turnContinues,
     required this.queenCovered,
     required this.gameOver,
     this.winner,
+    required this.pocketedByPlayer,
   });
 }
