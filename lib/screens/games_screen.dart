@@ -8,6 +8,7 @@ import '../games/bubble/bubble_shooter_screen.dart';
 import '../games/fruitninja/fruit_ninja_screen.dart';
 import '../games/racer/racer_screen.dart';
 import '../games/ludo/ludo_screen.dart';
+import '../games/carrom/carrom_screen.dart';
 import 'game_details_screen.dart';
 
 class GamesScreen extends StatelessWidget {
@@ -173,6 +174,11 @@ class GamesScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const LudoScreen()),
+          );
+        } else if (game.id == 'carrom') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CarromScreen()),
           );
         } else {
           Navigator.push(
