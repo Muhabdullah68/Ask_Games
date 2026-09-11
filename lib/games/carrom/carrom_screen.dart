@@ -678,11 +678,22 @@ class _CarromScreenState extends State<CarromScreen>
           ),
           if (isAI) ...[
             const SizedBox(width: 8),
-            SizedBox(
-              width: 70,
-              child: _difficultyRow(_seatDiff[index], (d) {
-                setState(() => _seatDiff[index] = d);
-              }),
+            DropdownButton<CarromDifficulty>(
+              value: _seatDiff[index],
+              isDense: true,
+              underline: const SizedBox.shrink(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+              items: CarromDifficulty.values.map((d) {
+                final label = d.name[0].toUpperCase() + d.name.substring(1);
+                return DropdownMenuItem(value: d, child: Text(label));
+              }).toList(),
+              onChanged: (d) {
+                if (d != null) setState(() => _seatDiff[index] = d);
+              },
             ),
           ],
         ],

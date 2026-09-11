@@ -534,8 +534,8 @@ class CarromEngine {
         queenPendingPlayer = null;
       } else if (queenIn) {
         // Pocketed queen on this shot but didn't cover — queen stays pending
-      } else if (!queenIn && pocketedThisTurn.isNotEmpty) {
-        // Queen was pending from before, not covered this turn
+      } else if (!queenIn) {
+        // Queen was pending, not covered this turn — return to center
         _returnQueenToCenter();
         queenPending = false;
         queenPendingPlayer = null;
@@ -659,10 +659,13 @@ class CarromEngine {
   void _advanceTurn() {
     final piecesPerPlayer = activePlayers.length == 2 ? 9 : 4;
     int idx = activePlayers.indexOf(currentPlayer);
+    int tries = 0;
     do {
       idx = (idx + 1) % activePlayers.length;
       currentPlayer = activePlayers[idx];
-    } while ((pocketedCount[currentPlayer] ?? 0) >= piecesPerPlayer);
+      tries++;
+    } while ((pocketedCount[currentPlayer] ?? 0) >= piecesPerPlayer &&
+        tries < activePlayers.length);
 
     phase = TurnPhase.placeStriker;
   }
