@@ -1,4 +1,4 @@
-package com.example.flutter_projects
+package com.askgames.hub
 
 import io.flutter.embedding.android.FlutterActivity
 

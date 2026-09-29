@@ -1,0 +1,264 @@
+================================================================================
+                           PRIVACY POLICY - ASK GAMES HUB
+                             Last Updated: September 23, 2026
+================================================================================
+
+Thank you for choosing Ask Games Hub. Your privacy matters to us. This Privacy
+Policy explains how we collect, use, disclose, and safeguard your information
+when you use our mobile game application. Please read this policy carefully. By
+using Ask Games Hub, you acknowledge that you have read, understood, and agree
+to be bound by the terms of this Privacy Policy.
+
+--------------------------------------------------------------------------------
+1. INFORMATION WE COLLECT
+--------------------------------------------------------------------------------
+
+We collect information in the following ways to provide and improve your gaming
+experience:
+
+1.1 Information You Provide Directly
+-------------------------------------
+- Account Information: When you create or edit your profile, we collect your
+  chosen display name and avatar/emoji.
+- User Content: Any custom profile settings or preferences you choose to save
+  within the app.
+
+1.2 Information Collected Automatically
+----------------------------------------
+- Game Data: Game scores, levels, XP (experience points), coins, gems, tokens,
+  and in-game progress generated as you play.
+- Device Information: Device model, operating system version, unique device
+  identifiers, app version, and screen resolution.
+- Usage Data: Which games you play, duration of sessions, feature interactions,
+  general gameplay patterns, and app launch events.
+- Performance Data: App crash logs, error reports, and performance metrics used
+  to improve stability.
+
+1.3 Leaderboard & Social Features
+----------------------------------
+- Leaderboard Data: Your display name, avatar, scores, and rank are visible on
+  Global, Friends, and Country leaderboards.
+- Achievements: Unlocked achievements, timestamps, and associated scores are
+  stored and displayed on your profile.
+
+--------------------------------------------------------------------------------
+2. HOW WE USE YOUR INFORMATION
+--------------------------------------------------------------------------------
+
+We use the information we collect for the following purposes:
+
+- Provide & Maintain Services: Operate the games, sync your progress across
+  sessions, store your profile, preferences, and rewards data.
+- Leaderboards & Rankings: Display your scores, achievements, and ranks
+  alongside other players.
+- Rewards & Progression: Track daily task completion, distribute daily rewards
+  (coins, gems, etc.), and calculate level progression (XP).
+- Improve the App: Analyze which games and features are popular, identify bugs,
+  optimize performance, and develop new content.
+- Personalization: Customize your in-app experience, show relevant game
+  suggestions, and surface achievements tailored to your activity.
+- Customer Support: Respond to inquiries, troubleshoot issues, and provide
+  assistance if you contact us via Help & Support.
+- Communications: Send push notifications (only if you opt in) regarding
+  rewards, tournaments, updates, and important service announcements.
+- Security: Detect and prevent fraud, cheating, abuse, or unauthorized access
+  to our systems.
+- Legal Compliance: Comply with applicable laws, regulations, and lawful
+  government requests.
+
+--------------------------------------------------------------------------------
+3. DATA STORAGE & RETENTION
+--------------------------------------------------------------------------------
+
+- Your profile, progress, scores, achievements, and reward data are stored
+  locally on your device and may be synced to secure cloud servers operated by
+  us or our trusted service providers (such as Google Firebase).
+- We retain your account data for as long as your account is active or as needed
+  to provide services. If you request account deletion, we will remove or
+  anonymize your data within 30 days, unless a longer retention period is
+  required by law.
+- Analytics and performance logs are retained for up to 12 months before being
+  anonymized or deleted.
+
+LOCAL STORAGE NOTE:
+Most of your game progress, settings (music, sound effects, vibration, language
+preferences), and profile data is stored locally on your device using the app's
+private storage. Removing the app from your device will delete this locally
+stored data.
+
+--------------------------------------------------------------------------------
+4. HOW WE SHARE YOUR INFORMATION
+--------------------------------------------------------------------------------
+
+We do not sell your personal information. We may share information only in the
+following circumstances:
+
+4.1 Displayed to Other Players
+-------------------------------
+- Your chosen display name, avatar, scores, and ranks are inherently visible to
+  other players through the Global, Friends, and Country leaderboards.
+- If you participate in multiplayer games or tournaments, your display name,
+  avatar, and moves/score will be visible to matched opponents.
+
+4.2 Trusted Service Providers
+------------------------------
+- Cloud & Hosting: We may use providers such as Google Cloud, Firebase, or
+  similar services to host user data, sync progress, and deliver features.
+  These providers process data only as instructed by us and under strict
+  confidentiality obligations.
+- Analytics: Tools such as Google Analytics for Firebase may be used to
+  understand app usage and improve product quality.
+- Advertising Partners: If the app displays advertisements, our ad partners
+  (e.g., Google AdMob) may collect device and usage information to serve
+  relevant ads. Their collection and use of data is governed by their own
+  privacy policies.
+- Payment Processors: If you make in-app purchases, the Google Play Store
+  handles all transactions and payment details directly. We do not process or
+  store your credit card or financial information.
+
+4.3 Legal & Safety
+-------------------
+- We may disclose information if required to do so by law, subpoena, or
+  government request.
+- We may disclose information when we believe disclosure is necessary to protect
+  our rights, your safety, the safety of users, or to investigate fraud,
+  security incidents, or violations of our Terms of Service.
+- In the event of a merger, acquisition, or asset sale, your information may be
+  transferred as part of that business transaction.
+
+--------------------------------------------------------------------------------
+5. ADVERTISING & THIRD-PARTY SERVICES
+--------------------------------------------------------------------------------
+
+The app may contain advertising. Third-party ad networks may collect and use
+information about your device and in-app activity to serve personalized or
+non-personalized ads. This may include:
+
+- Device identifiers (e.g., Advertising ID / AAID on Android)
+- IP address and approximate geographic location (country-level)
+- In-game event data for ad performance measurement
+
+On Android devices, you can reset your advertising ID or opt out of ad
+personalization via your device's Settings -> Privacy -> Ads menu.
+
+We encourage you to review the privacy policies of any third-party services
+integrated into the app for more information about their practices.
+
+--------------------------------------------------------------------------------
+6. YOUR RIGHTS & CHOICES
+--------------------------------------------------------------------------------
+
+Depending on your jurisdiction (including the EU, UK, California, Brazil, and
+others), you may have rights regarding your personal information. These may
+include:
+
+- Access: Request a copy of the personal information we hold about you.
+- Correction: Request correction of inaccurate or incomplete data. You may also
+  update your display name and avatar directly in the app's Profile or Settings.
+- Deletion: Request deletion of your account and associated personal data. Note
+  that some data may be retained if legally required.
+- Restriction: Request restriction of processing of your data under certain
+  circumstances.
+- Objection: Object to processing of your data for direct marketing or for
+  purposes based on legitimate interests.
+- Data Portability: Request your data in a machine-readable format for transfer
+  to another provider.
+- Withdraw Consent: Withdraw any previously given consent (e.g., push
+  notifications) at any time through your device settings or the in-app Settings
+  menu.
+
+To exercise these rights, contact us using the details provided in Section 12
+(Contact Us). We will respond to valid requests within 30 days. In some cases,
+we may request verification of identity before processing sensitive requests.
+
+--------------------------------------------------------------------------------
+7. IN-APP PURCHASES
+--------------------------------------------------------------------------------
+
+Ask Games Hub may offer virtual in-game currency (coins, gems, tokens) and other
+items for purchase. All purchases are processed through the Google Play Store.
+The terms of your purchase, including billing and refunds, are governed by the
+Google Play Terms of Service and their payment processor. We never receive or
+store your credit card number, bank account details, or full payment
+credentials.
+
+--------------------------------------------------------------------------------
+8. CHILDREN'S PRIVACY
+--------------------------------------------------------------------------------
+
+IMPORTANT NOTICE FOR PARENTS AND GUARDIANS:
+
+Ask Games Hub is intended for a general audience and is not directed at children
+under the age of 13 (or the relevant age of digital consent in your
+jurisdiction, e.g., 16 in the EU). We do not knowingly collect, solicit, or
+maintain personal information from children under these ages without verifiable
+parental consent.
+
+If we learn that we have inadvertently collected personal information from a
+child under the applicable age threshold, we will take immediate steps to delete
+that information. If you believe a child has provided us with personal
+information, please contact us at the address below and we will promptly
+investigate and remove the data.
+
+--------------------------------------------------------------------------------
+9. SECURITY
+--------------------------------------------------------------------------------
+
+We take reasonable administrative, technical, and physical security measures
+designed to protect the confidentiality, integrity, and availability of your
+information. These measures include encryption of data in transit (using
+TLS/HTTPS), secure storage, access controls, and regular security reviews.
+
+However, no method of transmission over the internet or electronic storage is
+100% secure. While we strive to protect your information, we cannot guarantee
+its absolute security.
+
+--------------------------------------------------------------------------------
+10. INTERNATIONAL DATA TRANSFERS
+--------------------------------------------------------------------------------
+
+We are a global service, and your information may be processed and stored in
+countries outside of your country of residence, including the United States, the
+European Economic Area, and other regions where our service providers operate.
+These countries may have different data protection laws than your home country.
+We take appropriate safeguards (such as Standard Contractual Clauses or
+equivalent mechanisms where required) to ensure your data remains protected when
+transferred internationally.
+
+--------------------------------------------------------------------------------
+11. CHANGES TO THIS PRIVACY POLICY
+--------------------------------------------------------------------------------
+
+We may update this Privacy Policy from time to time to reflect changes to our
+practices, legal requirements, or for other operational reasons. When we make
+material changes, we will:
+
+- Update the "Last updated" date at the top of this page.
+- Notify you through an in-app notice, push notification, or other reasonable
+  means before changes become effective, where required by applicable law.
+
+We encourage you to review this Privacy Policy periodically. Your continued use
+of Ask Games Hub after the effective date of any revised policy constitutes your
+acceptance of the updated terms.
+
+--------------------------------------------------------------------------------
+12. CONTACT US
+--------------------------------------------------------------------------------
+
+If you have any questions, concerns, or requests regarding this Privacy Policy,
+our data practices, or wish to exercise your privacy rights, please contact us
+using any of the methods below:
+
+  Email (Privacy):     privacy@askgameshub.com
+  Email (Support):     support@askgameshub.com
+
+  Postal Address:
+  Ask Games Hub
+  [Your Company Name]
+  [Your Full Address]
+
+We typically respond to all inquiries within 2-5 business days.
+
+================================================================================
+                       © 2026 Ask Games Hub. All rights reserved.
+================================================================================
