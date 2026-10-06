@@ -294,3 +294,203 @@ class CustomCard extends StatelessWidget {
     return container;
   }
 }
+
+class ComingSoonPlaceholder extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final String emoji;
+  final bool showAppBar;
+  final bool showBackButton;
+
+  const ComingSoonPlaceholder({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.emoji = '🚧',
+    this.showAppBar = true,
+    this.showBackButton = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: showAppBar
+            ? Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: Row(
+                      children: [
+                        if (showBackButton)
+                          const AppBackButton()
+                        else
+                          const SizedBox(width: 40),
+                        const Spacer(),
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        const Spacer(),
+                        const SizedBox(width: 40),
+                      ],
+                    ),
+                  ),
+                  Expanded(child: _buildBody(context)),
+                ],
+              )
+            : _buildBody(context),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(32, 24, 32, 160),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.25),
+                    AppColors.accent.withValues(alpha: 0.15),
+                  ],
+                ),
+                border: Border.all(
+                  color: AppColors.primaryLight.withValues(alpha: 0.35),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 40,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(emoji, style: const TextStyle(fontSize: 72)),
+              ),
+            ),
+            const SizedBox(height: 32),
+            ShaderMask(
+              shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
+              child: Text(
+                'Coming Soon',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              subtitle ?? '$title features are under development and will be available soon.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppColors.textSecondary.withValues(alpha: 0.9),
+                    height: 1.6,
+                    fontSize: 14,
+                  ),
+            ),
+            const SizedBox(height: 40),
+            Container(
+              constraints: const BoxConstraints(maxWidth: 320),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: AppColors.cardBg,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.cardBorder, width: 0.5),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.goldGradient,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Stay Tuned!',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'We are crafting something amazing for you.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppColors.textMuted,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 28),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                _buildFeatureChip(Icons.build_rounded, 'In Development'),
+                _buildFeatureChip(Icons.schedule_rounded, 'Launching Soon'),
+                _buildFeatureChip(Icons.star_rounded, 'Premium Features'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.cardBorder, width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.primaryLight),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

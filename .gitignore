@@ -29,9 +29,14 @@ migrate_working_dir/
 .dart_tool/
 .flutter-plugins-dependencies
 .pub-cache/
+.pub_cache/
 .pub/
 /build/
 /coverage/
+
+# Sandbox-local caches (for CI/restricted environments)
+.gradle/
+.android/
 
 # Symbolication related
 app.*.symbols

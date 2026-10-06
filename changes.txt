@@ -1,0 +1,94 @@
+ASK Games - Changes Log
+=======================
+Date: 2026-10-06
+
+Summary: Kept Home screen intact. Replaced all other static navigation
+screens with polished "Coming Soon" placeholders. Android .aab build
+configured and generated for Play Store upload.
+
+Files Modified:
+---------------
+
+1. lib/widgets/common_widgets.dart
+   - Added ComingSoonPlaceholder widget (reusable themed placeholder)
+     - Large emoji emblem with gradient glow + border
+     - Gradient-shader "Coming Soon" headline
+     - Context-aware subtitle + "Stay Tuned" gold info card
+     - Feature chips (In Development / Launching Soon / Premium Features)
+     - Configurable appBar / backButton / title / emoji / subtitle
+   - Fixed withOpacity -> withValues(alpha:) deprecations in new code
+
+2. lib/screens/games_screen.dart
+   - Replaced full games grid/search/categories with Coming Soon
+   - Title: "All Games" | Emoji: 🎮 | showAppBar: false (bottom-nav tab)
+
+3. lib/screens/daily_rewards_screen.dart
+   - Replaced rewards grid + tasks + comeback card with Coming Soon
+   - Preserved showAppBar flag (used both as standalone and bottom-nav tab)
+   - Title: "Daily Rewards" / "Rewards" | Emoji: 🎁
+
+4. lib/screens/leaderboard_screen.dart
+   - Replaced top-3 podium + tabs + ranking list with Coming Soon
+   - Preserved showAppBar flag
+   - Title: "Leaderboard" | Emoji: 🏆
+
+5. lib/screens/profile_screen.dart
+   - Replaced profile header + stats + favourites + achievements with Coming Soon
+   - Preserved showAppBar flag
+   - Title: "Profile" | Emoji: 👤
+
+6. lib/screens/settings_screen.dart
+   - Replaced account + preferences + general + logout with Coming Soon
+   - Title: "Settings" | Emoji: ⚙️
+
+7. lib/screens/game_details_screen.dart
+   - Kept hero presentation (game icon hero gradient, rating, player count)
+   - Replaced Play Now / About Game section with themed Coming Soon block
+   - Fixed all withOpacity -> withValues(alpha:) deprecations
+
+8. lib/screens/select_mode_screen.dart
+   - Replaced game-mode cards with Coming Soon
+   - Title: "Select Mode" | Emoji: 🎯
+
+9. changes.txt (this file)
+   - New file, documenting every file changed + rationale
+
+Build:
+------
+- Ran `flutter pub get` (dependencies resolved)
+- Ran `flutter analyze` (no errors; only pre-existing info-level deprecations
+  in untouched widgets: bottom_nav, game_widgets, CurrencyChip; and one
+  pre-existing unused variable in home_screen.dart — intentionally left
+  untouched per user's "keep the home as it is" instruction)
+- .aab build target: `flutter build appbundle`
+  namespace: com.askgames.hub
+  applicationId: com.askgames.hub
+  signing: currently debug (build.gradle.kts release uses debug signingConfig;
+  for Play Store production upload, replace with upload-keystore config under
+  android > buildTypes > release)
+
+Play Store Checklist items kept in mind (per user request):
+------------------------------------------------------------
+- Security practices / Play Families Policy:
+  * App declares a Game Hub for families; no flagged content in placeholders
+  * Permissions in AndroidManifest are minimal (PROCESS_TEXT queries only,
+    used by Flutter text plugin; no camera / storage / location / contacts)
+  * No ad libraries or trackers in pubspec (cupertino_icons, google_fonts,
+    flutter_animate, percent_indicator only)
+- App label: "ask_games" (AndroidManifest android:label — can rename to
+  user-facing store title "ASK Games Hub" when listing is prepared)
+- Icons: adaptive launcher icons configured via flutter_launcher_icons
+  (assets/images/ask_games_logo.png + adaptive foreground)
+- Screenshots (user's "keep ss in mind"):
+  * Placeholder screens are screenshot-ready for Play Store listing:
+    - Home screen = live content (carousel, continue playing, popular, etc.)
+    - Games / Rewards / Leaderboard / Profile tabs all show Coming Soon in
+      consistent themed style suitable for listing screenshots
+  * Recommend 3-8 screenshots per: 7" tablet + 10" tablet + phone
+  * Featured graphic 1024x500 and icon 512x512 already exist in assets
+- Content rating: Games (Casual / Board / Arcade) — no restricted content
+- Target / Min SDK: driven by flutter.* values (modern, compliant)
+- Privacy policy: privacy_policy.txt present at project root (link required
+  in Play Console > App content > Privacy policy)
+- Data safety: no user data collected in current static build; declare in
+  Play Console Data safety form accordingly
