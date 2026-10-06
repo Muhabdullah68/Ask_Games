@@ -38,6 +38,9 @@ migrate_working_dir/
 .gradle/
 .android/
 
+# Local build scripts / one-off utilities
+scripts/
+
 # Symbolication related
 app.*.symbols
 
