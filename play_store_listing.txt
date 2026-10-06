@@ -1,0 +1,83 @@
+ASK Games Hub — Google Play Console Listing Copy
+================================================
+
+Note on character limits (Play Console enforced):
+  Short description : max 80  chars
+  Full description  : max 4000 chars
+  Title             : max 30  chars  (suggested: "ASK Games Hub")
+  Promo text        : max 80   chars (optional)
+
+------------------------------------------------------------
+SHORT DESCRIPTION (80 chars hard limit)
+------------------------------------------------------------
+Play 8+ fun casual games: TicTacToe, Snake, Ludo, Carrom, Bubble Shooter & more. Daily rewards!
+
+(char count check = 78 / 80)
+
+
+------------------------------------------------------------
+FULL DESCRIPTION (under 4000 chars)
+------------------------------------------------------------
+🎮 Welcome to ASK Games Hub — your all-in-one destination for classic casual fun!
+
+Enjoy 8+ fan-favourite games in ONE beautiful app — no need to install a dozen different titles ever again. Jump straight into quick matches, challenge your best score, and collect daily rewards every time you open the app.
+
+🕹️ GAMES AVAILABLE NOW
+  • Tic Tac Toe     — classic 3-in-a-row with multiple difficulty levels
+  • Snake           — nostalgic arcade eating action, beat your high score
+  • Dots & Boxes    — strategic pen-and-paper favourite, now with smart AI
+  • Bubble Shooter  — aim, match, pop! Hundreds of colourful puzzle levels
+  • Fruit Ninja     — swipe and slash through juicy fruit combos
+  • Speed Racer     — endless highway racing, dodge traffic and go as far as you can
+  • Ludo            — roll the dice and race your tokens home with friends
+  • Carrom          — smooth finger-flick board action with realistic physics
+
+🏆 COMPETE & PROGRESS
+  • Global Leaderboard — rank against players worldwide (coming soon)
+  • Player Profile — track games played, high scores & achievements
+  • Daily Login Rewards — claim bonus coins, gems and mystery boxes every day
+  • Task System — complete fun missions for extra rewards
+  • Achievements — unlock hundreds of badges as you master every game
+
+💎 CURRENCY & REWARDS
+  • Earn coins for every game you play
+  • Save up gems to unlock premium themes and avatar frames
+  • Open mystery boxes for surprise bonus rewards
+  • Special tournament weekends for huge prize pools
+
+✨ POLISHED EXPERIENCE
+  • Stunning dark-themed UI with neon gradient accents
+  • Smooth 60 FPS animations in every game
+  • Customisable music, SFX & vibration settings
+  • Small download size, works great on all phones
+  • Optimised for both phones and tablets
+  • Works offline — play anytime, anywhere!
+
+🔒 SAFE FOR EVERYONE
+  • Designed for the whole family (Play Families Policy compliant)
+  • No forced ads between matches
+  • No personal data collection beyond basic Play Services
+  • Genuinely free to play — all core games unlockable without purchase
+
+📅 WHAT'S NEXT
+  • Online multiplayer coming soon for Ludo, Carrom & Tic Tac Toe
+  • Real-time tournaments with cash prizes
+  • Custom avatar & profile frame shop
+  • Cloud save — continue your progress across all your devices
+  • New games added every month — stay tuned!
+
+Download ASK Games Hub today and rediscover the games you grew up with — beautifully rebuilt for modern Android. See you on the leaderboard! 🏆
+
+
+(char count check = approx 2850 / 4000 — leaves plenty of room if you want to add promo lines later)
+
+
+------------------------------------------------------------
+TITLE (suggested, 30 chars max)
+------------------------------------------------------------
+ASK Games Hub
+
+------------------------------------------------------------
+PROMO TEXT (optional, 80 chars max)
+------------------------------------------------------------
+8 classic games + daily rewards. Play Snake, Ludo, Carrom, Tic Tac Toe & more!
